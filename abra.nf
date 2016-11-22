@@ -255,7 +255,7 @@ process fixmate_sort_index {
 
     shell:
     bam_tag = bam_abra.baseName
-    half_mem = params.mem.intdiv(2) / 2 
+    half_mem = params.mem.intdiv(2)
     half_threads = params.threads.intdiv(2) - 1
     '''
     set -o pipefail
