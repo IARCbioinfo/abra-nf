@@ -8,6 +8,15 @@
 // samtools
 // abra jar
 
+params.help = null
+params.tumor_bam_folder = null
+params.normal_bam_folder = null
+params.bam_folder = null
+params.bed = null
+params.ref = null
+params.abra_path = null
+params.read_length = null
+
 if (params.help) {
     log.info ''
     log.info '--------------------------------------------------'
