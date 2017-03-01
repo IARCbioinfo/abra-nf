@@ -16,6 +16,7 @@ params.bed = null
 params.ref = null
 params.abra_path = null
 params.read_length = null
+params.abra2 = "false"
 
 if (params.help) {
     log.info ''
@@ -154,13 +155,15 @@ if(params.bam_folder) {
 
         output:
         file("${bam_tag}_abra.bam") into bam_abra
-        file("${bam_tag}_SV.txt") into SV_output
+        file("${bam_tag}_SV.txt") optional true into SV_output
 
         shell:
         bam_tag = bam_bai[0].baseName
+	if(params.abra2=="false") abraoptions='--working abra_tmp --sv !{bam_tag}_SV.txt'
+	else abraoptions='--tmpdir .'
         '''
         echo !{bam_tag}
-        java -Xmx8G -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} --working abra_tmp --sv !{bam_tag}_SV.txt > !{bam_tag}_abra.log 2>&1
+        java -Xmx8G -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions} > !{bam_tag}_abra.log 2>&1
         '''
     }
 
@@ -237,12 +240,15 @@ if(params.bam_folder) {
     //    file("${tumor_normal_tag}${params.suffix_normal}_abra.bam") into normal_output
     //    file("${tumor_normal_tag}${params.suffix_tumor}_abra.bam") into tumor_output
         file '*_abra.bam' into bam_abra  mode flatten
-        file("${tumor_normal_tag}_SV.txt") into SV_output
+        file("${tumor_normal_tag}_SV.txt") optional true into SV_output
 
         shell:
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
-        '''
-        java -Xmx8G -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} --working abra_tmp --sv !{tumor_normal_tag}_SV.txt > !{tumor_normal_tag}_abra.log 2>&1
+	if(params.abra2=="false") abraoptions='--working abra_tmp --sv !{bam_tag}_SV.txt'
+        else abraoptions='--tmpdir .'
+               
+	'''
+        java -Xmx8G -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
         '''
     }
 }
