@@ -8,6 +8,8 @@ This scripts takes a set of [BAM files](https://samtools.github.io/hts-specs/) (
 
 In all cases BAI indexes have to be present in the same location than their BAM mates and called *.bam.bai`.
 
+For [ABRA2](https://github.com/mozack/abra2) compatibility, use the option `--abra2`
+
 ## How to install
 
 1. Install [java](https://java.com/download/) JRE if you don't already have it.
