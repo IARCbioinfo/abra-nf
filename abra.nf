@@ -162,7 +162,6 @@ if(params.bam_folder) {
 	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
 	else abraoptions="--tmpdir ."
         '''
-        echo !{bam_tag}
         java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions} > !{bam_tag}_abra.log 2>&1
         if [ -f tmp_SV.txt ]; then
 		mv tmp_SV.txt !{bam_tag}_SV.txt
@@ -253,7 +252,7 @@ if(params.bam_folder) {
 	'''
         java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
         if [ -f tmp_SV.txt ]; then
-		mv tmp_SV.txt !{bam_tag}_SV.txt
+		mv tmp_SV.txt !{tumor_normal_tag}_SV.txt
 	fi
 	'''
     }
