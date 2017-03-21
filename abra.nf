@@ -159,7 +159,7 @@ if(params.bam_folder) {
 
         shell:
         bam_tag = bam_bai[0].baseName
-	if(params.abra2=="false") abraoptions="--working abra_tmp --sv ${bam_tag}_SV.txt"
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv !{bam_tag}_SV.txt"
 	else abraoptions="--tmpdir ."
         '''
         echo !{bam_tag}
@@ -244,7 +244,7 @@ if(params.bam_folder) {
 
         shell:
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
-	if(params.abra2=="false") abraoptions="--working abra_tmp --sv ${bam_tag}_SV.txt"
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv !{bam_tag}_SV.txt"
         else abraoptions="--tmpdir ."
                
 	'''
