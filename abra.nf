@@ -167,12 +167,14 @@ if(params.bam_folder) {
 
         shell:
         bam_tag = bam_bai[0].baseName
-	if(params.abra2=="false") abraoptions='--working abra_tmp --sv !{bam_tag}_SV.txt'
-	else abraoptions='--tmpdir .'
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
+	else abraoptions="--tmpdir ."
         '''
-        echo !{bam_tag}
-        java -Xmx8G -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions} > !{bam_tag}_abra.log 2>&1
-        '''
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions} > !{bam_tag}_abra.log 2>&1
+        if [ -f tmp_SV.txt ]; then
+		mv tmp_SV.txt !{bam_tag}_SV.txt
+	fi
+	'''
     }
 
 
@@ -252,12 +254,15 @@ if(params.bam_folder) {
 
         shell:
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
-	if(params.abra2=="false") abraoptions='--working abra_tmp --sv !{bam_tag}_SV.txt'
-        else abraoptions='--tmpdir .'
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
+        else abraoptions="--tmpdir ."
                
 	'''
-        java -Xmx8G -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
-        '''
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
+        if [ -f tmp_SV.txt ]; then
+		mv tmp_SV.txt !{tumor_normal_tag}_SV.txt
+	fi
+	'''
     }
 }
 
