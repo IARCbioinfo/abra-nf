@@ -101,14 +101,22 @@ process bed_kmer_size {
 
     input:
     file bed
-
+    file fasta_ref
+    file fasta_ref_fai
+    file fasta_ref_gzi
+    file fasta_ref_sa 
+    file fasta_ref_bwt
+    file fasta_ref_ann
+    file fasta_ref_amb
+    file fasta_ref_pac
+    
     output:
     file "kmer_size_abra.bed" into bed_kmer
 
     shell:
     '''
     grep -v '^track' !{bed} | sort -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1"\t"$2"\t"$3}' > tmp_merged_sorted.bed
-    java -Xmx4G -cp !{params.abra_path} abra.KmerSizeEvaluator !{params.read_length} /appli57/reference/ucsc.hg19.fasta kmer_size_abra.bed !{params.threads} tmp_merged_sorted.bed
+    java -Xmx4G -cp !{params.abra_path} abra.KmerSizeEvaluator !{params.read_length} !{fasta_ref} kmer_size_abra.bed !{params.threads} tmp_merged_sorted.bed
     '''
 }
 
