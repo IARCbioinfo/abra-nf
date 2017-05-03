@@ -16,6 +16,7 @@ params.bed = null
 params.ref = null
 params.abra_path = null
 params.read_length = null
+params.abra2 = "false"
 
 if (params.help) {
     log.info ''
@@ -100,14 +101,22 @@ process bed_kmer_size {
 
     input:
     file bed
-
+    file fasta_ref
+    file fasta_ref_fai
+    file fasta_ref_gzi
+    file fasta_ref_sa 
+    file fasta_ref_bwt
+    file fasta_ref_ann
+    file fasta_ref_amb
+    file fasta_ref_pac
+    
     output:
     file "kmer_size_abra.bed" into bed_kmer
 
     shell:
     '''
     grep -v '^track' !{bed} | sort -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1"\t"$2"\t"$3}' > tmp_merged_sorted.bed
-    java -Xmx4G -cp !{params.abra_path} abra.KmerSizeEvaluator !{params.read_length} /appli57/reference/ucsc.hg19.fasta kmer_size_abra.bed !{params.threads} tmp_merged_sorted.bed
+    java -Xmx4G -cp !{params.abra_path} abra.KmerSizeEvaluator !{params.read_length} !{fasta_ref} kmer_size_abra.bed !{params.threads} tmp_merged_sorted.bed
     '''
 }
 
@@ -154,14 +163,18 @@ if(params.bam_folder) {
 
         output:
         file("${bam_tag}_abra.bam") into bam_abra
-        file("${bam_tag}_SV.txt") into SV_output
+        file("${bam_tag}_SV.txt") optional true into SV_output
 
         shell:
         bam_tag = bam_bai[0].baseName
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
+	else abraoptions="--tmpdir ."
         '''
-        echo !{bam_tag}
-        java -Xmx8G -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} --working abra_tmp --sv !{bam_tag}_SV.txt > !{bam_tag}_abra.log 2>&1
-        '''
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions} > !{bam_tag}_abra.log 2>&1
+        if [ -f tmp_SV.txt ]; then
+		mv tmp_SV.txt !{bam_tag}_SV.txt
+	fi
+	'''
     }
 
 
@@ -237,13 +250,19 @@ if(params.bam_folder) {
     //    file("${tumor_normal_tag}${params.suffix_normal}_abra.bam") into normal_output
     //    file("${tumor_normal_tag}${params.suffix_tumor}_abra.bam") into tumor_output
         file '*_abra.bam' into bam_abra  mode flatten
-        file("${tumor_normal_tag}_SV.txt") into SV_output
+        file("${tumor_normal_tag}_SV.txt") optional true into SV_output
 
         shell:
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
-        '''
-        java -Xmx8G -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} --working abra_tmp --sv !{tumor_normal_tag}_SV.txt > !{tumor_normal_tag}_abra.log 2>&1
-        '''
+	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
+        else abraoptions="--tmpdir ."
+               
+	'''
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
+        if [ -f tmp_SV.txt ]; then
+		mv tmp_SV.txt !{tumor_normal_tag}_SV.txt
+	fi
+	'''
     }
 }
 
