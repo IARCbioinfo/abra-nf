@@ -25,24 +25,24 @@ if (params.help) {
     log.info '--------------------------------------------------'
     log.info ''
     log.info 'Usage: '
-    log.info 'nextflow run abra_TN_pairs.nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --bed mybedfile.bed --ref ref.fasta' 
+    log.info 'nextflow run iarcbioinf/abra-nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --bed mybedfile.bed --ref ref.fasta'
     log.info ''
     log.info 'Mandatory arguments:'
-    log.info '   When using Tumor/Normal pairs:'    
+    log.info '   When using Tumor/Normal pairs:'
     log.info '    --tumor_bam_folder   FOLDER                  Folder containing tumor BAM files.'
     log.info '    --normal_bam_folder  FOLDER                  Folder containing matched normal BAM files.'
-    log.info '   In other cases:'     
+    log.info '   In other cases:'
     log.info '    --bam_folder         FOLDER                  Folder containing BAM files.'
-    log.info '   In all cases:'         
+    log.info '   In all cases:'
     log.info '    --bed                FILE                    Bed file containing intervals.'
     log.info '    --ref                FILE (with index)       Reference fasta file indexed by bwa.'
     log.info '    --abra_path          FILE                    abra.jar explicit path.'
-    log.info '    --read_length        INT                     Read length (e.g.: 100).'   
+    log.info '    --read_length        INT                     Read length (e.g.: 100).'
     log.info 'Optional arguments:'
-    log.info '   When using Tumor/Normal pairs:'  
+    log.info '   When using Tumor/Normal pairs:'
     log.info '    --suffix_tumor       STRING                  Suffix identifying tumor bam (default: "_T").'
     log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
-    log.info '   In all cases:'             
+    log.info '   In all cases:'
     log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
     log.info '    --threads            INTEGER                 Number of threads (default: 4)'
     log.info '    --out_folder         FOLDER                  Output folder (default: abra_BAM).'
@@ -104,12 +104,12 @@ process bed_kmer_size {
     file fasta_ref
     file fasta_ref_fai
     file fasta_ref_gzi
-    file fasta_ref_sa 
+    file fasta_ref_sa
     file fasta_ref_bwt
     file fasta_ref_ann
     file fasta_ref_amb
     file fasta_ref_pac
-    
+
     output:
     file "kmer_size_abra.bed" into bed_kmer
 
@@ -139,14 +139,14 @@ if(params.bam_folder) {
     bam_bai = bams
               .phase(bais)
               .map { bam, bai -> [ bam[1], bai[1] ] }
-              
+
     process abra {
 
         cpus params.threads
-        memory params.mem+'GB' 
+        memory params.mem+'GB'
 
         tag { bam_tag }
-        
+
         publishDir params.out_folder, mode: 'move', pattern: '*_SV.txt'
 
         input:
@@ -155,7 +155,7 @@ if(params.bam_folder) {
         file fasta_ref
         file fasta_ref_fai
         file fasta_ref_gzi
-        file fasta_ref_sa 
+        file fasta_ref_sa
         file fasta_ref_bwt
         file fasta_ref_ann
         file fasta_ref_amb
@@ -185,7 +185,7 @@ if(params.bam_folder) {
     try { assert file(params.normal_bam_folder).exists() : "\n WARNING : input normal BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
     assert file(params.normal_bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "normal BAM folder contains no BAM"
 
-    // FOR TUMOR 
+    // FOR TUMOR
     // recovering of bam files
     tumor_bams = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam' )
               .ifEmpty { error "Cannot find any bam file in: ${params.tumor_bam_folder}" }
@@ -201,7 +201,7 @@ if(params.bam_folder) {
               .phase(tumor_bais)
               .map { tumor_bam, tumor_bai -> [ tumor_bam[0], tumor_bam[1], tumor_bai[1] ] }
 
-    // FOR NORMAL 
+    // FOR NORMAL
     // recovering of bam files
     normal_bams = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam' )
               .ifEmpty { error "Cannot find any bam file in: ${params.normal_bam_folder}" }
@@ -220,14 +220,14 @@ if(params.bam_folder) {
     // building 4-uplets corresponding to {tumor_bam, tumor_bai, normal_bam, normal_bai}
     tn_bambai = tumor_bam_bai
           .phase(normal_bam_bai)
-          .map {tumor_bb, normal_bb -> [ tumor_bb[1], tumor_bb[2], normal_bb[1], normal_bb[2] ] }    
+          .map {tumor_bb, normal_bb -> [ tumor_bb[1], tumor_bb[2], normal_bb[1], normal_bb[2] ] }
     // here each element X of tn_bambai channel is a 4-uplet. X[0] is the tumor bam, X[1] the tumor bai, X[2] the normal bam and X[3] the normal bai.
 
 
     process abra_TN {
 
         cpus params.threads
-        memory params.mem+'GB' 
+        memory params.mem+'GB'
 
         tag { tumor_normal_tag }
 
@@ -239,7 +239,7 @@ if(params.bam_folder) {
         file fasta_ref
         file fasta_ref_fai
         file fasta_ref_gzi
-        file fasta_ref_sa 
+        file fasta_ref_sa
         file fasta_ref_bwt
         file fasta_ref_ann
         file fasta_ref_amb
@@ -256,7 +256,7 @@ if(params.bam_folder) {
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
 	if(params.abra2=="false") abraoptions="--working abra_tmp --sv tmp_SV.txt"
         else abraoptions="--tmpdir ."
-               
+
 	'''
         java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --target-kmers !{bed_kmer} --threads !{params.threads} !{abraoptions}> !{tumor_normal_tag}_abra.log 2>&1
         if [ -f tmp_SV.txt ]; then
@@ -269,7 +269,7 @@ if(params.bam_folder) {
 process fixmate_sort_index {
 
     cpus params.threads
-    memory params.mem+'GB' 
+    memory params.mem+'GB'
 
     tag { bam_tag }
 
@@ -279,7 +279,7 @@ process fixmate_sort_index {
     file bam_abra
 
     output:
-    file '*abra_sorted_fixmate.bam*' into final_bam 
+    file '*abra_sorted_fixmate.bam*' into final_bam
 
     shell:
     bam_tag = bam_abra.baseName
@@ -290,4 +290,3 @@ process fixmate_sort_index {
     sambamba sort -t !{half_threads} -m !{half_mem}G -n --tmpdir=sort_tmp -o /dev/stdout !{bam_abra} | samtools fixmate - - | sambamba sort -t !{half_threads} -m !{half_mem}G --tmpdir=sort_tmp -o "!{bam_tag}_sorted_fixmate.bam" /dev/stdin
     '''
 }
-
