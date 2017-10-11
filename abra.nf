@@ -1,7 +1,21 @@
-#!/usr/bin/env nextflow
+#! /usr/bin/env nextflow
 
-// requires (in path):
-// java
+//vim: syntax=groovy -*- mode: groovy;-*-
+
+// Copyright (C) 2017 IARC/WHO
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 params.help = null
 params.tumor_bam_folder = null
@@ -12,10 +26,21 @@ params.single = null
 params.ref = null
 params.abra_path = null
 
+log.info ""
+log.info "--------------------------------------------------------"
+log.info "  abra2-nf v2.0: Nextflow pipeline for ABRA2         "
+log.info "--------------------------------------------------------"
+log.info "Copyright (C) IARC/WHO"
+log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
+log.info "This is free software, and you are welcome to redistribute it"
+log.info "under certain conditions; see LICENSE for details."
+log.info "--------------------------------------------------------"
+log.info ""
+
 if (params.help) {
     log.info ''
     log.info '--------------------------------------------------'
-    log.info '  NEXTFLOW pipeline for ABRA2              '
+    log.info '  USAGE              '
     log.info '--------------------------------------------------'
     log.info ''
     log.info 'Usage: '
@@ -28,7 +53,7 @@ if (params.help) {
     log.info '   In other cases:'
     log.info '    --bam_folder         FOLDER                  Folder containing BAM files.'
     log.info '   In all cases:'
-    log.info '    --ref                FILE (with index)       Reference fasta file indexed by bwa.'
+    log.info '    --ref                FILE (with index)       Reference fasta file indexed.'
     log.info '    --abra_path          FILE                    abra.jar explicit path.'
     log.info 'Optional arguments:'
     log.info '   When using Tumor/Normal pairs:'
@@ -39,7 +64,7 @@ if (params.help) {
     log.info '    --bed                FILE                    Bed file containing intervals.'
     log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
     log.info '    --threads            INTEGER                 Number of threads (default: 4)'
-    log.info '    --out_folder         FOLDER                  Output folder (default: abra_BAM).'
+    log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
     log.info ''
     exit 1
 }
@@ -74,7 +99,7 @@ params.suffix_tumor = "_T"
 params.suffix_normal = "_N"
 params.mem = 16
 params.threads = 4
-params.out_folder = "abra_BAM"
+params.output_folder = "abra_BAM"
 
 try { assert fasta_ref.exists() : "\n WARNING : fasta reference not located in execution directory. Make sure reference index is in the same folder as fasta reference" } catch (AssertionError e) { println e.getMessage() }
 if (fasta_ref.exists()) {assert fasta_ref_fai.exists() : "input fasta reference does not seem to have a .fai index (use samtools faidx)"}
@@ -108,7 +133,7 @@ if(params.bam_folder) {
 
         tag { bam_tag }
 
-        publishDir params.out_folder, mode: 'move'
+        publishDir params.output_folder, mode: 'move'
 
         input:
         file bam_bai
@@ -188,7 +213,7 @@ if(params.bam_folder) {
 
         tag { tumor_normal_tag }
 
-        publishDir params.out_folder, mode: 'move'
+        publishDir params.output_folder, mode: 'move'
 
         input:
         file tn from tn_bambai
