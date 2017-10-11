@@ -30,13 +30,12 @@ You can avoid installing all the external software by only installing Docker. Se
 
  * #### In tumor-normal mode
 
-
-  | Name      | Description   |
-  |-----------|---------------|
-	| `--tumor_bam_folder`    | Folder containing tumor BAM files |
-  | `--normal_bam_folder`    | Folder containing matched normal BAM files |
-	| `--suffix_tumor` | Suffix identifying tumor bam (default: `_T`) |
-	| `--suffix_normal` | Suffix identifying normal bam (default: `_N`) |
+| Name      | Description   |
+|-----------|---------------|
+| `--tumor_bam_folder`    | Folder containing tumor BAM files |
+| `--normal_bam_folder`    | Folder containing matched normal BAM files |
+| `--suffix_tumor` | Suffix identifying tumor bam (default: `_T`) |
+| `--suffix_normal` | Suffix identifying normal bam (default: `_N`) |
 
  * #### Otherwise
 
@@ -88,4 +87,4 @@ nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fa
   | Name      | Email | Description     |
   |-----------|---------------|-----------------|
   | Matthieu Foll*    | follm@iarc.fr | Developer to contact for support |
-  | Nicolas Alcala    |  alcalaa@fellows.iarc.fr | Developer |
+  | Nicolas Alcala    |  alcalan@fellows.iarc.fr | Developer |
