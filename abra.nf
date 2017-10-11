@@ -123,12 +123,12 @@ if(params.bam_folder) {
         file fasta_ref_pac
 
         output:
-        file("${bam_tag}_abra.bam*") into bam_out
+        file("${bam_tag}_abra.ba*") into bam_out
 
         shell:
         bam_tag = bam_bai[0].baseName
         abra_single = params.single ? '--single --mapq 20' : ''
-        abra_bed = params.bed ? "--bed $bed" : ''
+        abra_bed = params.bed ? "--targets $bed" : ''
         '''
         java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} > !{bam_tag}_abra.log 2>&1
 	      '''
@@ -203,13 +203,13 @@ if(params.bam_folder) {
         file fasta_ref_pac
 
         output:
-        file("${tumor_normal_tag}${params.suffix_normal}_abra.bam*") into normal_output
-        file("${tumor_normal_tag}${params.suffix_tumor}_abra.bam*") into tumor_output
+        file("${tumor_normal_tag}${params.suffix_normal}_abra.ba*") into normal_output
+        file("${tumor_normal_tag}${params.suffix_tumor}_abra.ba*") into tumor_output
 
         shell:
         tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
         abra_single = params.single ? '--single --mapq 20' : ''
-        abra_bed = params.bed ? "--bed $bed" : ''
+        abra_bed = params.bed ? "--targets $bed" : ''
 	      '''
         java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --threads !{params.threads}  --index !{abra_single} !{abra_bed} > !{tumor_normal_tag}_abra.log 2>&1
 	      '''
