@@ -1,57 +1,90 @@
-# Nextflow pipeline for ABRA (Assembly Based ReAligner)
+# abra-nf
 
-Apply [ABRA](https://github.com/mozack/abra) to realign next generation sequencing data using localized assembly in a set of BAM files. After ABRA, the mate information is fixed using [`samtools fixmate`](http://www.htslib.org/doc/samtools.html) and BAM files are sorted and indexed using [sambamba](http://lomereiter.github.io/sambamba/).
+## Nextflow pipeline for ABRA2 (Assembly Based ReAligner)
+
+![Workflow representation](abra-nf.png)
+
+## Description
+
+Apply [ABRA2](https://github.com/mozack/abra2) to realign next generation sequencing data using localized assembly in a set of BAM files.
 
 This scripts takes a set of [BAM files](https://samtools.github.io/hts-specs/) (called `*.bam`) grouped folders as an input. There are two modes:
 - When using matched tumor/normal pairs, the two samples of each pair are realigned together (see https://github.com/mozack/abra#somatic--mode). In this case the user has to provide as an input the folders containing tumor (`--tumor_bam_folder`) and normal BAM files (`--normal_bam_folder`) (it can be the same unique folder). The tumor bam file format must be (`sample` `suffix_tumor` `.bam`) with `suffix_tumor` as `_T` by default and customizable in input (`--suffix_tumor`). (e.g. `sample1_T.bam`). The normal bam file format must be (`sample` `suffix_normal` `.bam`) with `suffix_normal` as `_N` by default and customizable in input (`--suffix_normal`). (e.g. `sample1_N.bam`).
-- When using only normal (or only tumor) samples, each bam is treated independently. In this case the user has to provide a single folder containing all BAM files (`bam_folder`).
+- When using only normal (or only tumor) samples, each bam is treated independently. In this case the user has to provide a single folder containing all BAM files (`--bam_folder`).
 
-In all cases BAI indexes have to be present in the same location than their BAM mates and called *.bam.bai`.
+In all cases BAI indexes have to be present in the same location than their BAM mates and called `*.bam.bai`.
 
-For [ABRA2](https://github.com/mozack/abra2) compatibility, use the option `--abra2`
+Note that ABRA v1 is no longer supported (see the last version supporting it here: https://github.com/IARCbioinfo/abra-nf/releases/tag/v1.0)
 
-## How to install
+## Dependencies
 
-1. Install [java](https://java.com/download/) JRE if you don't already have it.
+1. This pipeline is based on [nextflow](https://www.nextflow.io). As we have several nextflow pipelines, we have centralized the common information in the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository. Please read it carefully as it contains essential information for the installation, basic usage and configuration of nextflow and our pipelines.
 
-2. Install [nextflow](http://www.nextflow.io/).
+2. External software:
+- [java](https://www.java.com/)
+- [ABRA2](https://github.com/mozack/abra2) jar file
 
-	```bash
-	curl -fsSL get.nextflow.io | bash
-	```
-	And move it to a location in your `$PATH` (`/usr/local/bin` for example here):
-	```bash
-	sudo mv nextflow /usr/local/bin
-	```
-	
-3. Install and put in your PATH: [java](https://www.java.com/), [bedtools](http://bedtools.readthedocs.io/en/latest/), [bwa](http://bio-bwa.sourceforge.net), [sambamba](http://lomereiter.github.io/sambamba/), [samtools](http://www.htslib.org/) and download ABRA jar. Alternatively (recommended), you can simply use the docker image provided (see below).
+You can avoid installing all the external software by only installing Docker. See the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository for more information.
 
-## How to run
+## Input
 
-Simply use example:
+ * #### In tumor-normal mode
+
+| Name      | Description   |
+|-----------|---------------|
+| `--tumor_bam_folder`    | Folder containing tumor BAM files |
+| `--normal_bam_folder`    | Folder containing matched normal BAM files |
+| `--suffix_tumor` | Suffix identifying tumor bam (default: `_T`) |
+| `--suffix_normal` | Suffix identifying normal bam (default: `_N`) |
+
+ * #### Otherwise
+
+| Name      | Description     |
+|-----------|---------------|
+| `--bam_folder`    | Folder containing BAM files |
+
+## Parameters
+
+  * #### Mandatory
+
+| Name      | Example value | Description     |
+|-----------|---------------|-----------------|
+| `--ref`    | `/path/to/ref.fasta` |  Reference fasta file indexed |
+| `--abra_path`    |    `/path/to/abra2.jar` | abra.jar explicit path |
+
+  * #### Optional
+
+| Name      | Default value | Description     |
+|-----------|---------------|-----------------|
+| `--bed`    |  `/path/to/intervals.bed`  | Bed file containing intervals |
+| `--mem`    |  16  | Maximum RAM used |
+| `--threads`    |  4  | Number of threads used |
+| `--output_folder`    |  `abra_BAM/`  | Bed file containing intervals |
+
+  * #### Flags
+
+Flags are special parameters without value.
+
+| Name      | Description     |
+|-----------|-----------------|
+| `--help`    | Display help |
+| `--single`    |  Switch to single-end sequencing mode |
+
+## Usage
+
+Simple use case example:
 ```bash
-nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fasta --read_length 100 --abra_path /path/to/abra.jar
+nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fasta --abra_path /path/to/abra.jar
 ```
 
-By default, BAM files produced are output in the same folder as the input folder with the `abra_sorted_fixmate.bam` suffix. One can also specify the output folder by adding the optional argument `--out_folder BAM_ABRA` to the above command line for example.
+## Output
+  | Type      | Description     |
+  |-----------|---------------|
+  | ABRA BAM    | Realigned BAM files with their indexes |
 
-You can print the help by providing `--help` in the execution command line:
-```bash
-nextflow run iarcbioinfo/abra-nf --help
-```
+## Contributions
 
-Instead of installing all tools in step 3 above, we recommend to use the docker image we provide containing them by simply adding `-with-docker`:
-```bash
-nextflow run iarcbioinfo/abra-nf -with-docker ...
-```
-
-Installing [docker](https://www.docker.com) is very system specific (but quite easy in most cases), follow  [docker documentation](https://docs.docker.com/installation/). Also follow the optional configuration step called `Create a Docker group` in their documentation.
-
-## Detailed instructions
-
-The exact same pipeline can be run on your computer or on a HPC cluster, by adding a [nextflow configuration file](http://www.nextflow.io/docs/latest/config.html) to choose an appropriate [executor](http://www.nextflow.io/docs/latest/executor.html). For example to work on a cluster using [SGE scheduler](https://en.wikipedia.org/wiki/Oracle_Grid_Engine), simply add a file named `nextflow.config` in the current directory (or `~/.nextflow/config` to make global changes) containing:  
-```java
-process.executor = 'sge'
-```
-
-Other popular schedulers such as LSF, SLURM, PBS, TORQUE etc. are also compatible. See the nextflow documentation [here](http://www.nextflow.io/docs/latest/executor.html) for more details. Also have a look at the [other parameters for the executors](http://www.nextflow.io/docs/latest/config.html#scope-executor), in particular `queueSize` that defines the number of tasks the executor will handle in a parallel manner.  
+  | Name      | Email | Description     |
+  |-----------|---------------|-----------------|
+  | Matthieu Foll*    | follm@iarc.fr | Developer to contact for support |
+  | Nicolas Alcala    |  alcalan@fellows.iarc.fr | Developer |
