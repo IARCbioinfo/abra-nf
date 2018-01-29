@@ -96,5 +96,15 @@ ABRA memory use has a large variance, often resulting in a few bam files unpredi
 ```
 process.errorStrategy = 'ignore'
 ```
-so that files that cause an error do not stop all other processes that would have been processed just fine. ABRA-nf can then be launched again with more memory (option -mem) for the files that failed.
+so that files that cause an error do not stop all other processes that would have been processed just fine. ABRA-nf can then be launched again with more memory (option -mem) for the files that failed.  
 
+An other possibility would be to relaunch individual crashed process with more memory, but do not let the pipeline continue if all bam were not processed, just with this in the config file:
+```
+process {
+     $abra {
+           memory = { task.exitStatus == 130 ? 4.GB * task.attempt : 4.GB }
+      }
+      maxRetries = { task.exitStatus == 130 ? 4 : 1 }
+}
+```
+Here we ask Nextflow to use first 4GB of memory, and if it crashed due to memory (exitcode 130) then 8, then 16, etc. until 4 maximum retries.  
