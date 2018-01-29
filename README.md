@@ -88,3 +88,13 @@ nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fa
   |-----------|---------------|-----------------|
   | Matthieu Foll*    | follm@iarc.fr | Developer to contact for support |
   | Nicolas Alcala    |  alcalan@fellows.iarc.fr | Developer |
+  
+## FAQ
+
+### A few samples always crash with error exit status 130, causing all processes to be stopped by nextflow. What can I do about it?
+ABRA memory use has a large variance, often resulting in a few bam files unpredictably requiring much more memory than others, and causing a memory error (exit code 130). Because pipeline ABRA-nf involves a single process that is executed in parallel across all bam files, results for each sample (or Tumor-Normal pair) are independent, and it is recommended to use the nextflow option (e.g., in the nextflow.config file)
+```
+process.errorStrategy = 'ignore'
+```
+so that files that cause an error do not stop all other processes that would have been processed just fine. ABRA-nf can then be launched again with more memory (option -mem) for the files that failed.
+
