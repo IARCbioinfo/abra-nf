@@ -25,6 +25,10 @@ params.bed = null
 params.single = null
 params.ref = null
 params.abra_path = null
+params.junctions = null
+params.gtf = null
+params.rna = null
+  
 
 log.info ""
 log.info "--------------------------------------------------------"
@@ -62,6 +66,9 @@ if (params.help) {
     log.info '   In all cases:'
     log.info '    --single                                     Flag for single-end sequencing.'
     log.info '    --bed                FILE                    Bed file containing intervals.'
+    log.info '    --junctions          FILE                    STAR identified junctions file.'
+    log.info '    --gtf                FILE                    GTF file containing junction annotations.'
+    log.info '    --bed                                        Flag to add RNA-specific recommended ABRA2 parameters.'
     log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
     log.info '    --threads            INTEGER                 Number of threads (default: 4)'
     log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
@@ -83,6 +90,12 @@ if (params.bed!=null) {
     try { assert file(params.bed).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
 }
 bed = params.bed ? file(params.bed) : file('nothing')
+
+if (params.gtf!=null) {
+    assert (params.gtf != true) : "please specify file when using --gtf option (--gtf annotations.gtf)"
+    try { assert file(params.gtf).exists() : "\n WARNING : input gtf file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
+}
+gtf = params.gtf ? file(params.gtf) : file('nothing')
 
 assert (params.abra_path != true) && (params.abra_path != null) : "please specify --abra_path option (--abra_path /path/to/abra.jar)"
 
@@ -121,13 +134,26 @@ if(params.bam_folder) {
               .ifEmpty { error "Cannot find any bai file in: ${params.bam_folder}" }
               .map {  path -> [ path.name.replace(".bam.bai",""), path ] }
 
+    if(params.junctions){
+	// recovering of junctions files
+    	junctions = Channel.fromPath( params.bam_folder+'/*.Chimeric.out.junction' )
+              .ifEmpty { error "Cannot find any junction files in: ${params.bam_folder}" }
+              .map {  path -> [ path.name.replace(".Chimeric.out.junction","").replace("STAR.",""), path ] }
+	// building bam-bai pairs
+        bam_bai = bams
+              .join(bais)
+              .map { bam, bai -> [ bam[1], bai[1] ] }
+	      .join(junctions)
+	      .println()
+  
+    }else{
     // building bam-bai pairs
     bam_bai = bams
               .phase(bais)
               .map { bam, bai -> [ bam[1], bai[1] ] }
-
+    }
+    
     process abra {
-
         cpus params.threads
         memory params.mem+'GB'
 
@@ -154,8 +180,11 @@ if(params.bam_folder) {
         bam_tag = bam_bai[0].baseName
         abra_single = params.single ? '--single --mapq 20' : ''
         abra_bed = params.bed ? "--targets $bed" : ''
+	abra_junctions = params.junctions ? "--junctions $junction" : ''
+	abra_gtf = params.gtf ? "--gtf $gtf" : ''
+	abra_rna = params.rna ? "--sua --dist 500000" : ''
         '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} > !{bam_tag}_abra.log 2>&1
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
 	      '''
     }
 
