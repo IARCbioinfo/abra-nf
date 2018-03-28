@@ -59,7 +59,7 @@ You can avoid installing all the external software by only installing Docker. Se
 | `--bed`    |  `/path/to/intervals.bed`  | Bed file containing intervals |
 | `--mem`    |  16  | Maximum RAM used |
 | `--threads`    |  4  | Number of threads used |
-| `--output_folder`    |  `abra_BAM/`  | Bed file containing intervals |
+| `--output_folder`    |  `abra_BAM/`  | Output folder containing the realigned BAM |
 
   * #### Flags
 
@@ -92,19 +92,20 @@ nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fa
 ## FAQ
 
 ### A few samples always crash with error exit status 130, causing all processes to be stopped by nextflow. What can I do about it?
-ABRA memory use has a large variance, often resulting in a few bam files unpredictably requiring much more memory than others, and causing a memory error (exit code 130). Because pipeline ABRA-nf involves a single process that is executed in parallel across all bam files, results for each sample (or Tumor-Normal pair) are independent, and it is recommended to use the nextflow option (e.g., in the nextflow.config file)
+ABRA memory use has a large variance, often resulting in a few bam files unpredictably requiring much more memory than others, and causing a memory error (exit code 130). Because pipeline ABRA-nf involves a single process that is executed in parallel across all bam files, results for each sample (or Tumor-Normal pair) are independent, and it is recommended to use the nextflow option (e.g., in the nextflow.config file):
 ```
 process.errorStrategy = 'ignore'
 ```
-so that files that cause an error do not stop all other processes that would have been processed just fine. ABRA-nf can then be launched again with more memory (option -mem) for the files that failed.  
+so that files that cause an error do not stop all other processes that would have been processed just fine. ABRA-nf can then be launched again with more memory (option `--mem`) for the files that failed.  
 
-An other possibility would be to relaunch individual crashed process with more memory, but do not let the pipeline continue if all bam were not processed, just with this in the config file:
+An other possibility is to automatically relaunch individual crashed process with more memory, with something like this in the config file:
 ```
 process {
      $abra {
-           memory = { task.exitStatus == 130 ? 4.GB * task.attempt : 4.GB }
+           memory = { task.exitStatus == 130 ? 8.GB * task.attempt : 8.GB }
+           errorStrategy = { task.exitStatus == 130 ? 'retry' : 'ignore' }
+           maxRetries = 4
       }
-      maxRetries = { task.exitStatus == 130 ? 4 : 1 }
 }
 ```
-Here we ask Nextflow to use first 4GB of memory, and if it crashed due to memory (exitcode 130) then 8, then 16, etc. until 4 maximum retries.  
+Here we ask Nextflow to try first with 8GB of memory, and if it crashed due to memory (exitcode 130 in this example, but note that this error code is specific to the scheduler used), it will retry with 16GB, then 24GB etc. until 4 maximum retries. If ABRA crashes for another reason the error is ignored.  
