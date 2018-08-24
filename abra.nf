@@ -21,7 +21,7 @@ params.help = null
 params.tumor_bam_folder = null
 params.normal_bam_folder = null
 params.bam_folder = null
-params.bed = null
+params.targets = null
 params.single = null
 params.ref = null
 params.abra_path = null
@@ -65,19 +65,31 @@ if (params.help) {
     log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
     log.info '   In all cases:'
     log.info '    --single                                     Flag for single-end sequencing.'
-    log.info '    --bed                FILE                    Bed file containing intervals.'
-    log.info '    --junctions          FILE                    STAR identified junctions file.'
+    log.info '    --targets            FILE                    Bed file containing intervals.'
+    log.info '    --junctions                                  Use STAR identified junctions.'
     log.info '    --gtf                FILE                    GTF file containing junction annotations.'
-    log.info '    --bed                                        Flag to add RNA-specific recommended ABRA2 parameters.'
+    log.info '    --rna                                        Flag to add RNA-specific recommended ABRA2 parameters.'
     log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
     log.info '    --threads            INTEGER                 Number of threads (default: 4)'
     log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
     log.info ''
     exit 1
+}else {
+  /* Software information */
+  log.info "bam_folder = ${params.bam_folder}"
+  log.info "ref          = ${params.ref}"
+  log.info "cpu          = ${params.cpu}"
+  log.info "mem          = ${params.mem}"
+  log.info "output_folder= ${params.output_folder}"
+  log.info "targets      = ${params.targets}"
+  log.info "abra_path    = ${params.abra_path}"
+  log.info "gtf          = ${params.gtf}"
+  log.info "junctions    = ${params.junctions}"
+  log.info "help=${params.help}"
 }
 
-assert (params.ref != true) && (params.ref != null) : "please specify --ref option (--ref reference.fasta(.gz))"
 
+assert (params.ref != true) && (params.ref != null) : "please specify --ref option (--ref reference.fasta(.gz))"
 if (params.bam_folder) {
     assert (params.bam_folder != true) && (params.bam_folder != null) : "please specify --bam_folder option (--bam_folder bamfolder)"
 } else {
@@ -85,11 +97,11 @@ if (params.bam_folder) {
     assert (params.tumor_bam_folder != true) && (params.tumor_bam_folder != null) : "please specify --tumor_bam_folder option (--tumor_bam_folder bamfolder)"
 }
 
-if (params.bed!=null) {
-    assert (params.bed != true) : "please specify file when using --bed option (--bed regions.bed)"
-    try { assert file(params.bed).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
+if (params.targets!=null) {
+    assert (params.targets != true) : "please specify file when using --bed option (--bed regions.bed)"
+    try { assert file(params.targets).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
 }
-bed = params.bed ? file(params.bed) : file('nothing')
+targets = params.targets ? file(params.targets) : file('nothing')
 
 if (params.gtf!=null) {
     assert (params.gtf != true) : "please specify file when using --gtf option (--gtf annotations.gtf)"
@@ -101,17 +113,16 @@ assert (params.abra_path != true) && (params.abra_path != null) : "please specif
 
 fasta_ref = file(params.ref)
 fasta_ref_fai = file( params.ref+'.fai' )
-fasta_ref_gzi = file( params.ref+'.gzi' )
-fasta_ref_sa = file( params.ref+'.sa' )
+fasta_ref_sa  = file( params.ref+'.sa' )
 fasta_ref_bwt = file( params.ref+'.bwt' )
 fasta_ref_ann = file( params.ref+'.ann' )
 fasta_ref_amb = file( params.ref+'.amb' )
 fasta_ref_pac = file( params.ref+'.pac' )
 
-params.suffix_tumor = "_T"
+params.suffix_tumor  = "_T"
 params.suffix_normal = "_N"
 params.mem = 16
-params.threads = 4
+params.cpu = 4
 params.output_folder = "abra_BAM"
 
 try { assert fasta_ref.exists() : "\n WARNING : fasta reference not located in execution directory. Make sure reference index is in the same folder as fasta reference" } catch (AssertionError e) { println e.getMessage() }
@@ -120,7 +131,6 @@ if (fasta_ref.exists()) {assert fasta_ref_fai.exists() : "input fasta reference 
 if (fasta_ref.exists() && params.ref.tokenize('.')[-1] == 'gz') {assert fasta_ref_gzi.exists() : "input gz fasta reference does not seem to have a .gzi index (use samtools faidx)"}
 
 if(params.bam_folder) {
-
     try { assert file(params.bam_folder).exists() : "\n WARNING : input BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
     assert file(params.bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "BAM folder contains no BAM"
 
@@ -135,17 +145,14 @@ if(params.bam_folder) {
               .map {  path -> [ path.name.replace(".bam.bai",""), path ] }
 
     if(params.junctions){
-	// recovering of junctions files
-    	junctions = Channel.fromPath( params.bam_folder+'/*.Chimeric.out.junction' )
-              .ifEmpty { error "Cannot find any junction files in: ${params.bam_folder}" }
-              .map {  path -> [ path.name.replace(".Chimeric.out.junction","").replace("STAR.",""), path ] }
+	// recovering junctions files
+    	junctions = Channel.fromPath( params.bam_folder+'/*.SJ.out.tab' )
+              .ifEmpty { error "Cannot find any junction tab files in: ${params.bam_folder}" }
+              .map {  path -> [ path.name.replace(".SJ.out.tab","").replace("STAR.",""), path ] }
 	// building bam-bai pairs
         bam_bai = bams
               .join(bais)
-              .map { bam, bai -> [ bam[1], bai[1] ] }
 	      .join(junctions)
-	      .println()
-  
     }else{
     // building bam-bai pairs
     bam_bai = bams
@@ -154,7 +161,7 @@ if(params.bam_folder) {
     }
     
     process abra {
-        cpus params.threads
+        cpus params.cpu
         memory params.mem+'GB'
 
         tag { bam_tag }
@@ -162,11 +169,10 @@ if(params.bam_folder) {
         publishDir params.output_folder, mode: 'move'
 
         input:
-        file bam_bai
-        file bed
+        set bam_tag, file(bam), file(bai), file(junctions) from bam_bai
+        file targets
         file fasta_ref
         file fasta_ref_fai
-        file fasta_ref_gzi
         file fasta_ref_sa
         file fasta_ref_bwt
         file fasta_ref_ann
@@ -177,17 +183,15 @@ if(params.bam_folder) {
         file("${bam_tag}_abra.ba*") into bam_out
 
         shell:
-        bam_tag = bam_bai[0].baseName
         abra_single = params.single ? '--single --mapq 20' : ''
-        abra_bed = params.bed ? "--targets $bed" : ''
-	abra_junctions = params.junctions ? "--junctions $junction" : ''
+        abra_targets = params.targets ? "--targets $targets" : ''
+	abra_junctions = params.junctions ? "--junctions $junctions" : ''
 	abra_gtf = params.gtf ? "--gtf $gtf" : ''
 	abra_rna = params.rna ? "--sua --dist 500000" : ''
         '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_targets} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
 	      '''
     }
-
 
 } else {
 
@@ -237,7 +241,7 @@ if(params.bam_folder) {
 
     process abra_TN {
 
-        cpus params.threads
+        cpus params.cpu
         memory params.mem+'GB'
 
         tag { tumor_normal_tag }
@@ -265,7 +269,7 @@ if(params.bam_folder) {
         abra_single = params.single ? '--single --mapq 20' : ''
         abra_bed = params.bed ? "--targets $bed" : ''
 	      '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --threads !{params.threads}  --index !{abra_single} !{abra_bed} > !{tumor_normal_tag}_abra.log 2>&1
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --threads !{params.cpu}  --index !{abra_single} !{abra_bed} > !{tumor_normal_tag}_abra.log 2>&1
 	      '''
     }
 }
