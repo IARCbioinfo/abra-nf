@@ -28,7 +28,7 @@ params.abra_path = null
 params.junctions = null
 params.gtf = null
 params.rna = null
-  
+params.ignore_bad_assembly = null  
 
 log.info ""
 log.info "--------------------------------------------------------"
@@ -114,13 +114,13 @@ params.mem = 16
 params.threads = 4
 params.output_folder = "abra_BAM"
 
+
 try { assert fasta_ref.exists() : "\n WARNING : fasta reference not located in execution directory. Make sure reference index is in the same folder as fasta reference" } catch (AssertionError e) { println e.getMessage() }
 if (fasta_ref.exists()) {assert fasta_ref_fai.exists() : "input fasta reference does not seem to have a .fai index (use samtools faidx)"}
 
 if (fasta_ref.exists() && params.ref.tokenize('.')[-1] == 'gz') {assert fasta_ref_gzi.exists() : "input gz fasta reference does not seem to have a .gzi index (use samtools faidx)"}
 
 if(params.bam_folder) {
-
     try { assert file(params.bam_folder).exists() : "\n WARNING : input BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
     assert file(params.bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "BAM folder contains no BAM"
 
@@ -128,29 +128,28 @@ if(params.bam_folder) {
     bams = Channel.fromPath( params.bam_folder+'/*.bam' )
               .ifEmpty { error "Cannot find any bam file in: ${params.bam_folder}" }
               .map {  path -> [ path.name.replace(".bam",""), path ] }
+	      //.println()
 
     // recovering of bai files
     bais = Channel.fromPath( params.bam_folder+'/*.bam.bai' )
               .ifEmpty { error "Cannot find any bai file in: ${params.bam_folder}" }
               .map {  path -> [ path.name.replace(".bam.bai",""), path ] }
+              //.println()
 
     if(params.junctions){
 	// recovering of junctions files
-    	junctions = Channel.fromPath( params.bam_folder+'/*.Chimeric.out.junction' )
+    	junctions = Channel.fromPath( params.bam_folder+'/*.SJ.out.tab' )
               .ifEmpty { error "Cannot find any junction files in: ${params.bam_folder}" }
-              .map {  path -> [ path.name.replace(".Chimeric.out.junction","").replace("STAR.",""), path ] }
+              .map {  path -> [ path.name.replace(".SJ.out.tab","").replace("STAR.",""), path ] }
+              //.println()
+
 	// building bam-bai pairs
-        bam_bai = bams
-              .join(bais)
-              .map { bam, bai -> [ bam[1], bai[1] ] }
-	      .join(junctions)
-	      .println()
-  
+        bam_bai = bams.join(bais).join(junctions)
     }else{
     // building bam-bai pairs
     bam_bai = bams
-              .phase(bais)
-              .map { bam, bai -> [ bam[1], bai[1] ] }
+              .join(bais)
+              //.map { bam, bai -> [ bam[1], bai[1] ] }
     }
     
     process abra {
@@ -177,14 +176,15 @@ if(params.bam_folder) {
         file("${bam_tag}_abra.ba*") into bam_out
 
         shell:
-        bam_tag = bam_bai[0].baseName
+        bam_tag = bam_bai[1].baseName
         abra_single = params.single ? '--single --mapq 20' : ''
         abra_bed = params.bed ? "--targets $bed" : ''
-	abra_junctions = params.junctions ? "--junctions $junction" : ''
+	abra_junctions = params.junctions ? "--junctions STAR.${bam_tag}.SJ.out.tab" : ''
 	abra_gtf = params.gtf ? "--gtf $gtf" : ''
 	abra_rna = params.rna ? "--sua --dist 500000" : ''
+	abra_iba = params.ignore_bad_assembly ? "--ignore-bad-assembly ": ""
         '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
+        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.threads} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} !{abra_iba} > !{bam_tag}_abra.log 2>&1
 	      '''
     }
 
