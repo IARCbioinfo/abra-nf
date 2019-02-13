@@ -66,7 +66,7 @@ if (params.help) {
     log.info '   In all cases:'
     log.info '    --single                                     Flag for single-end sequencing.'
     log.info '    --bed                FILE                    Bed file containing intervals.'
-    log.info '    --junctions          FILE                    STAR identified junctions file.'
+    log.info '    --junctions                                  Flag to use STAR identified junctions.'
     log.info '    --gtf                FILE                    GTF file containing junction annotations.'
     log.info '    --bed                                        Flag to add RNA-specific recommended ABRA2 parameters.'
     log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
