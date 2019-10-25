@@ -184,6 +184,7 @@ if(params.bam_folder) {
         file("${bam_tag}_abra.ba*") into bam_out
 
         shell:
+	java_mem = params.mem - 2
         abra_single = params.single ? '--single --mapq 20' : ''
         abra_targets = params.targets ? "--targets $targets" : ''
 	abra_junctions = params.junctions ? "--junctions $junctions" : ''
@@ -191,7 +192,7 @@ if(params.bam_folder) {
 	abra_rna = params.rna ? "--sua --dist 500000" : ''
 	abra_iba = params.ignore_bad_assembly ? "--ignore-bad-assembly ": ""
         '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_targets} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
+        java -Xmx!{java_mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_targets} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
 	'''
     }
 
