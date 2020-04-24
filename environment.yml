@@ -4,4 +4,4 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - abra=
+  - abra2=2.22
