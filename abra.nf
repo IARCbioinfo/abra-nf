@@ -19,10 +19,10 @@ params.help = null
 params.tumor_bam_folder = null
 params.normal_bam_folder = null
 params.bam_folder = null
-params.targets = null
+params.bed = null
 params.single = null
 params.ref = null
-params.abra_path = null
+params.abra_path = '/opt/conda/envs/abra-nf/share/abra2*/abra2.jar'
 params.junctions = null
 params.gtf = null
 params.rna = null
@@ -30,7 +30,7 @@ params.ignore_bad_assembly = null
 
 log.info ""
 log.info "--------------------------------------------------------"
-log.info "  abra2-nf v2.0: Nextflow pipeline for ABRA2         "
+log.info "  abra2-nf v3.0: Nextflow pipeline for ABRA2         "
 log.info "--------------------------------------------------------"
 log.info "Copyright (C) IARC/WHO"
 log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
@@ -63,7 +63,7 @@ if (params.help) {
     log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
     log.info '   In all cases:'
     log.info '    --single                                     Flag for single-end sequencing.'
-    log.info '    --bed                FILE                    Bed file containing intervals.'
+    log.info '    --bed                FILE                    Bed file containing target intervals.'
     log.info '    --junctions                                  Flag to use STAR identified junctions.'
     log.info '    --gtf                FILE                    GTF file containing junction annotations.'
     log.info '    --rna                                        Flag to add RNA-specific recommended ABRA2 parameters.'
@@ -79,7 +79,7 @@ if (params.help) {
   log.info "cpu          = ${params.cpu}"
   log.info "mem          = ${params.mem}"
   log.info "output_folder= ${params.output_folder}"
-  log.info "targets      = ${params.targets}"
+  log.info "bed          = ${params.bed}"
   log.info "abra_path    = ${params.abra_path}"
   log.info "gtf          = ${params.gtf}"
   log.info "junctions    = ${params.junctions}"
@@ -95,11 +95,11 @@ if (params.bam_folder) {
     assert (params.tumor_bam_folder != true) && (params.tumor_bam_folder != null) : "please specify --tumor_bam_folder option (--tumor_bam_folder bamfolder)"
 }
 
-if (params.targets!=null) {
-    assert (params.targets != true) : "please specify file when using --bed option (--bed regions.bed)"
-    try { assert file(params.targets).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
+if (params.bed!=null) {
+    assert (params.bed != true) : "please specify file when using --bed option (--bed regions.bed)"
+    try { assert file(params.bed).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
 }
-targets = params.targets ? file(params.targets) : file('nothing')
+bed = params.bed ? file(params.bed) : file('nothing')
 
 if (params.gtf!=null) {
     assert (params.gtf != true) : "please specify file when using --gtf option (--gtf annotations.gtf)"
@@ -171,7 +171,7 @@ if(params.bam_folder) {
 
         input:
         set bam_tag, file(bam), file(bai), file(junctions) from bam_bai
-        file targets
+        file bed
         file fasta_ref
         file fasta_ref_fai
         file fasta_ref_sa
@@ -186,13 +186,13 @@ if(params.bam_folder) {
         shell:
 	java_mem = params.mem - 2
         abra_single = params.single ? '--single --mapq 20' : ''
-        abra_targets = params.targets ? "--targets $targets" : ''
+        abra_bed = params.bed ? "--targets $bed" : ''
 	abra_junctions = params.junctions ? "--junctions $junctions" : ''
 	abra_gtf = params.gtf ? "--gtf $gtf" : ''
 	abra_rna = params.rna ? "--sua --dist 500000" : ''
 	abra_iba = params.ignore_bad_assembly ? "--ignore-bad-assembly ": ""
         '''
-        java -Xmx!{java_mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_targets} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
+        java -Xmx!{java_mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
 	'''
     }
 

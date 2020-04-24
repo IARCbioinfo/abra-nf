@@ -1,0 +1,9 @@
+From:iarcbioinfo/abra-nf:v3.0
+Bootstrap:docker
+
+%labels
+    MAINTAINER **alcalan** <**alcalan@fellows.iarc.fr**>
+    DESCRIPTION Container image containing all requirements for pipeline abra-nf
+    VERSION 3.0
+
+
