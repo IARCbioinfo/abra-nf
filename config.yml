@@ -1,0 +1,18 @@
+version: 2
+
+jobs:
+        build:
+                machine: true
+                steps:
+                        - checkout
+                        - run: cd ~ ; wget -qO- get.nextflow.io | bash ; chmod 755 nextflow ; sudo ln -s ~/nextflow /usr/local/bin/ ; sudo apt-get install graphviz
+                        - run: cd ~ && git clone https://github.com/iarcbioinfo/data_test.git
+                        - run: echo " docker.runOptions = '-u $(id -u):$(id -g)' " > ~/.nextflow/config
+                        - run: cd ~/project/ ; docker build -t iarcbioinfo/abra-nf .
+                        - run: cd ; nextflow run ~/project/abra.nf --help
+                        - run: cd ; nextflow run ~/project/abra.nf -with-docker iarcbioinfo/abra-nf --bam_folder ~/data_test/BAM/BAM_realigned_17/ --cpu 2 --mem 4 --ref ~/data_test/REF/17.fasta -with-dag dag_abra.png
+                        - run: cd ; nextflow run ~/project/abra.nf -with-docker iarcbioinfo/abra-nf --bam_folder ~/data_test/BAM/BAM_realigned_17/ --cpu 2 --mem 4 --ref ~/data_test/REF/17.fasta -with-dag dag_abra.html
+                        - run: cd ; cp ~/dag* ~/project/.
+                        - deploy:
+                                branch: [master, dev]
+                                command: chmod +x deploy.sh && ./deploy.sh
