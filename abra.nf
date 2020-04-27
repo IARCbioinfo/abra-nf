@@ -71,7 +71,7 @@ if (params.help) {
     log.info '    --threads            INTEGER                 Number of threads (default: 4)'
     log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
     log.info ''
-    exit 1
+    exit 0
 }else {
   /* Software information */
   log.info "bam_folder = ${params.bam_folder}"
