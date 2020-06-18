@@ -1,6 +1,9 @@
 # abra-nf
 
 ## Nextflow pipeline for ABRA2 (Assembly Based ReAligner)
+[![CircleCI](https://circleci.com/gh/IARCbioinfo/abra-nf.svg?style=svg)](https://circleci.com/gh/IARCbioinfo/abra-nf)
+[![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/iarcbioinfo/abra-nf/)
+[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4272)
 
 ![Workflow representation](abra-nf.png)
 
