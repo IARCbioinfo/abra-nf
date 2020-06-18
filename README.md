@@ -72,7 +72,6 @@ Flags are special parameters without value.
 | `--single`    |  Switch to single-end sequencing mode |
 | `--rna`    |  Add RNA-specific recommended ABRA2 parameters |
 | `--junctions`    |   Use STAR identified junctions |
-| `--ignore_bad_assembly`    |  xx |
 
 ## Usage
 
