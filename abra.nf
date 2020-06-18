@@ -158,7 +158,7 @@ if(params.bam_folder) {
     // building bam-bai pairs
     bam_bai = bams
               .join(bais)
-              //.map { bam, bai -> [ bam[1], bai[1] ] }
+              .map { tag, bam, bai -> [ tag, bam, bai, file("NO_JUNCTION_FILE") ] }
     }
     
     process abra {
