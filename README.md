@@ -24,7 +24,7 @@ Note that ABRA v1 is no longer supported (see the last version supporting it her
 - [java](https://www.java.com/)
 - [ABRA2](https://github.com/mozack/abra2) jar file
 
-You can avoid installing all the external software by only installing Docker. See the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository for more information.
+A conda receipe, and docker and singularity containers are available with all the tools needed to run the pipeline (see "Usage" and the [IARC-nf](https://github.com/IARCbioinfo/IARC-nf) repository for more information.)
 
 ## Input
 
@@ -50,13 +50,14 @@ You can avoid installing all the external software by only installing Docker. Se
 | Name      | Example value | Description     |
 |-----------|---------------|-----------------|
 | `--ref`    | `/path/to/ref.fasta` |  Reference fasta file indexed |
-| `--abra_path`    |    `/path/to/abra2.jar` | abra.jar explicit path |
+| `--abra_path`    |    `/path/to/abra2.jar` | abra.jar explicit path (not needed if you use docker or singularity container)|
 
   * #### Optional
 
 | Name      | Default value | Description     |
 |-----------|---------------|-----------------|
-| `--bed`    |  `/path/to/intervals.bed`  | Bed file containing intervals |
+| `--bed`    |  `/path/to/intervals.bed`  | Bed file containing intervals (without header) |
+| `--gtf`    |  `/path/to/annotations.gtf`  | GTF file containing junction annotations |
 | `--mem`    |  16  | Maximum RAM used |
 | `--threads`    |  4  | Number of threads used |
 | `--output_folder`    |  `abra_BAM/`  | Output folder containing the realigned BAM |
@@ -69,6 +70,9 @@ Flags are special parameters without value.
 |-----------|-----------------|
 | `--help`    | Display help |
 | `--single`    |  Switch to single-end sequencing mode |
+| `--rna`    |  Add RNA-specific recommended ABRA2 parameters |
+| `--junctions`    |   Use STAR identified junctions |
+| `--ignore_bad_assembly`    |  xx |
 
 ## Usage
 
@@ -76,6 +80,11 @@ Simple use case example:
 ```bash
 nextflow run iarcbioinfo/abra-nf --bam_folder BAM/ --bed target.bed --ref ref.fasta --abra_path /path/to/abra.jar
 ```
+With singularity:
+```bash
+nextflow run iarcbioinfo/abra-nf -profile singularity --bam_folder BAM/ --bed target.bed --ref ref.fasta --abra_path /path/to/abra.jar
+```
+Alternatively, one can run the pipeline using a docker container (-profile docker) or the conda receipe containing all required dependencies (-profile conda).
 
 ## Output
   | Type      | Description     |
