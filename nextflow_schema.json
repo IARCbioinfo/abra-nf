@@ -90,9 +90,26 @@
             "title": "Pipeline_params",
             "type": "object",
             "description": "Pipeline parameters",
-            "default": ""
-        }
-    },
+            "default": "",
+             "properties": {
+                "single": {
+                    "type": "boolean",
+                    "description": "Switch to single-end sequencing mode"
+                },
+                "rna": {
+                    "type": "boolean",
+                    "description": "Add RNA-specific recommended ABRA2 parameters"
+                },
+                "junctions": {
+                    "type": "boolean",
+                    "description": "Use STAR identified junctions"
+                },
+                "help": {
+                    "type": "boolean",
+                    "description": "Display help"
+                },
+            },
+        },
     "allOf": [
         {
             "$ref": "#/definitions/input_output_params"
@@ -106,23 +123,7 @@
         {
             "$ref": "#/definitions/pipeline_params"
         }
-    ],
-    "properties": {
-        "single": {
-            "type": "boolean",
-            "description": "Switch to single-end sequencing mode"
-        },
-        "rna": {
-            "type": "boolean",
-            "description": "Add RNA-specific recommended ABRA2 parameters"
-        },
-        "junctions": {
-            "type": "boolean",
-            "description": "Use STAR identified junctions"
-        },
-        "help": {
-            "type": "boolean",
-            "description": "Display help"
-        }
+    ]
+   
     }
 }
