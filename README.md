@@ -62,7 +62,7 @@ A conda receipe, and docker and singularity containers are available with all th
 | `--bed`    |  `/path/to/intervals.bed`  | Bed file containing intervals (without header) |
 | `--gtf`    |  `/path/to/annotations.gtf`  | GTF file containing junction annotations |
 | `--mem`    |  16  | Maximum RAM used |
-| `--threads`    |  4  | Number of threads used |
+| `--cpu`    |  4  | Number of threads used |
 | `--output_folder`    |  `abra_BAM/`  | Output folder containing the realigned BAM |
 
   * #### Flags
