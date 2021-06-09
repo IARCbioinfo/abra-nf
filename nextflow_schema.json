@@ -1,67 +1,113 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://raw.githubusercontent.com/IARCbioinfo/abra-nf/master/nextflow_schema.json",
-    "title": "abra-nf pipeline parameters",
+    "title": "IARCbioinfo abra-nf pipeline parameters",
     "description": "Nextflow pipeline for ABRA2 to realign next generation sequencing data using localized assembly in a set of BAM files",
     "type": "object",
+    "definitions": {
+        "input_output_params": {
+            "title": "Input_output_params",
+            "type": "object",
+            "description": "Input and output parameters",
+            "default": "",
+            "properties": {
+                "tumor_bam_folder": {
+                    "type": "string",
+                    "description": "Folder containing tumor BAM files"
+                },
+                "normal_bam_folder": {
+                    "type": "string",
+                    "description": "Folder containing matched normal BAM files"
+                },
+                "bam_folder": {
+                    "type": "string",
+                    "description": "Folder containing BAM files"
+                },
+                "suffix_tumor": {
+                    "type": "string",
+                    "default": "_T",
+                    "description": "Suffix identifying tumor bam"
+                },
+                "suffix_normal": {
+                    "type": "string",
+                    "default": "_N",
+                    "description": "Suffix identifying normal bam"
+                },
+                "output_folder": {
+                    "type": "string",
+                    "default": "abra_BAM",
+                    "description": "Output folder containing the realigned BAM"
+                }
+            }
+        },
+        "computing_params": {
+            "title": "Computing_params",
+            "type": "object",
+            "description": "Computing parameters",
+            "default": "",
+            "properties": {
+                "mem": {
+                    "type": "integer",
+                    "default": 16,
+                    "description": "Maximum RAM used"
+                },
+                "threads": {
+                    "type": "integer",
+                    "default": 4,
+                    "description": "Number of threads used"
+                }
+            }
+        },
+        "ref_params": {
+            "title": "Ref_params",
+            "type": "object",
+            "description": "Reference parameters",
+            "default": "",
+            "properties": {
+                "ref": {
+                    "type": "string",
+                    "description": "Path to Reference fasta file indexed"
+                },
+                "bed": {
+                    "type": "string",
+                    "description": "Bed file containing intervals (without header)"
+                },
+                "gtf": {
+                    "type": "string",
+                    "description": "GTF file containing junction annotations"
+                },
+                "abra_path": {
+                    "type": "string",
+                    "default": "/opt/conda/envs/abra-nf/share/abra2*/abra2.jar",
+                    "description": "Path to abra.jar (not needed if you use docker or singularity container)"
+                }
+            },
+            "required": [
+                "ref"
+            ]
+        },
+        "pipeline_params": {
+            "title": "Pipeline_params",
+            "type": "object",
+            "description": "Pipeline parameters",
+            "default": ""
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_params"
+        },
+        {
+            "$ref": "#/definitions/computing_params"
+        },
+        {
+            "$ref": "#/definitions/ref_params"
+        },
+        {
+            "$ref": "#/definitions/pipeline_params"
+        }
+    ],
     "properties": {
-        "tumor_bam_folder": {
-            "type": "string",
-            "description": "Folder containing tumor BAM files"
-        },
-        "normal_bam_folder": {
-            "type": "string",
-            "description": "Folder containing matched normal BAM files"
-        },
-        "suffix_tumor": {
-            "type": "string",
-            "description": "Suffix identifying tumor bam",
-            "default": "_T"
-        },
-        "suffix_normal": {
-            "type": "string",
-            "description": "Suffix identifying normal bam",
-            "default": "_N"
-        },
-        "bam_folder": {
-            "type": "string",
-            "description": "Folder containing BAM files"
-        },
-        "ref": {
-            "type": "string",
-            "default": "null",
-            "description": "Path to Reference fasta file indexed"
-        },
-        "abra_path": {
-            "type": "string",
-            "default": "/opt/conda/envs/abra-nf/share/abra2*/abra2.jar",
-            "description": "Path to abra.jar (not needed if you use docker or singularity container)"
-        },
-        "bed": {
-            "type": "string",
-            "default": "null",
-            "description": "Bed file containing intervals (without header)"
-        },
-        "gtf": {
-            "type": "string",
-            "description": "GTF file containing junction annotations",
-            "default": "null"
-        },
-        "mem": {
-            "type": "string",
-            "description": "Maximum RAM used",
-            "default": "16"
-        },
-        "threads": {
-            "type": "integer",
-            "description": "Number of threads used",
-            "default": "4"
-        },
-        "output_folder": {
-            "type": "string",
-            "description": "Output folder containing the realigned BAM",
-            "default": "abra_BAM"
-        },
         "single": {
             "type": "boolean",
             "description": "Switch to single-end sequencing mode"
@@ -78,8 +124,5 @@
             "type": "boolean",
             "description": "Display help"
         }
-    },
-    "required": [
-        "ref"
-    ]
+    }
 }
