@@ -109,7 +109,9 @@
                     "description": "Display help"
                 }
             }
-        },
+            
+        }
+   },
     "allOf": [
         {
             "$ref": "#/definitions/input_output_params"
@@ -125,5 +127,4 @@
         }
     ]
    
-    }
 }
