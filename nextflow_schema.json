@@ -91,7 +91,7 @@
             "type": "object",
             "description": "Pipeline parameters",
             "default": "",
-             "properties": {
+            "properties": {
                 "single": {
                     "type": "boolean",
                     "description": "Switch to single-end sequencing mode"
@@ -107,8 +107,8 @@
                 "help": {
                     "type": "boolean",
                     "description": "Display help"
-                },
-            },
+                }
+            }
         },
     "allOf": [
         {
