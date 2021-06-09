@@ -51,7 +51,7 @@
                     "default": 16,
                     "description": "Maximum RAM used"
                 },
-                "threads": {
+                "cpu": {
                     "type": "integer",
                     "default": 4,
                     "description": "Number of threads used"
