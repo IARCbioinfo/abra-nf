@@ -232,7 +232,7 @@ workflow {
 			.ifEmpty { error "No junctions files found in ${params.bam_folder}" }
         bam_bai = bam_bai
 					.join(junctions)
-					.map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)
+					.map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)}
         } else {
             bam_bai = bam_bai.map { tag, bam, bai -> tuple(tag, bam, bai, null) }
         }
