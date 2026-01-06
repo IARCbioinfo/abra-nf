@@ -168,12 +168,7 @@ gtf = params.gtf ? file(params.gtf) : null
 		def abra_rna      = params.rna ? "--sua --dist 500000" : ''
 		def abra_iba      = params.ignore_bad_assembly ? "--ignore-bad-assembly" : ''
     """
-	    java -Xmx${java_mem}g -jar ${params.abra_path} \
-			--in ${bam} --out ${bam_tag}_abra.bam \
-			--ref ${fasta_ref} --tmpdir . \
-			--threads ${task.cpu} --index ${abra_single} \
-			${abra_bed} ${abra_junctions} ${abra_gtf} ${abra_rna} ${abra_iba} \
-			> ${bam_tag}_abra.log 2>&1
+	    java -Xmx${java_mem}g -jar ${params.abra_path} --in ${bam} --out ${bam_tag}_abra.bam --ref ${fasta_ref} --tmpdir . --threads ${task.cpu} --index ${abra_single} ${abra_bed} ${abra_junctions} ${abra_gtf} ${abra_rna} ${abra_iba} > ${bam_tag}_abra.log 2>&1
     """
     }
 
