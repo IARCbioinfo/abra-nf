@@ -227,29 +227,11 @@ workflow {
         
 		bam_bai = bams.join(bais) // emit tag, bam, bai
 
-		if (params.junctions) {
-
-            junctions_ch = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
-                .map { f ->
-                    tuple(
-                        f.baseName.replace('.SJ.out.tab','').replace('STAR.',''),
-                        f
-                    )
-                }
-                .ifEmpty { error "No junction files found in ${params.bam_folder}" }
-
-            bam_bai = bam_bai
-                .join(junctions_ch)
-                .map { tag, bam, bai, junction ->
-                    tuple(tag, bam, bai, junction)
-                }
-
-        } else {
-
-            bam_bai = bam_bai
-                .map { tag, bam, bai ->
-                    tuple(tag, bam, bai, null)  // or tuple(tag, bam, bai, file("NO_JUNCTION_FILE"))
-                }
+		// Attach junction file or NONE per BAM
+        bam_bai = bam_bai.map { tag, bam, bai ->
+            junction_file = params.junctions ? file("${params.bam_folder}/STAR.${tag}.SJ.out.tab") : file("NO_JUNCTION_FILE")
+            if (!junction_file.exists()) junction_file = file("NO_JUNCTION_FILE")
+            tuple(tag, bam, bai, junction_file)
         }
 
         bam_bai.view { "BAM_BAI → $it" }
