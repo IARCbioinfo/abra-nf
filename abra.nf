@@ -216,9 +216,11 @@ workflow {
     if (params.bam_folder) {
         log.info "Running single-sample ABRA2 realignment"
         bams = Channel.fromPath("${params.bam_folder}/*.bam")
-            .map { bam -> tuple(bam.baseName, bam) }
+			//.map { path -> tuple(path.baseName, '', path) }
+             .map { bam -> tuple(bam.baseName, bam) }
         bais = Channel.fromPath("${params.bam_folder}/*.bam.bai")
-            .map { bai -> tuple(bai.baseName.replace('.bai',''), bai) }
+			//.map { path -> tuple(path.baseName, '', path) }
+             .map { bai -> tuple(bai.baseName.replace('.bai',''), bai) }
 
         if (params.junctions) {
             junctions = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
