@@ -124,11 +124,6 @@ if (params.bam_folder) {
 
 fasta_ref     = file(params.ref)
 fasta_ref_fai = file("${params.ref}.fai")
-// fasta_ref_sa  = file("${params.ref}.sa")
-// fasta_ref_bwt = file("${params.ref}.bwt")
-// fasta_ref_ann = file("${params.ref}.ann")
-// fasta_ref_amb = file("${params.ref}.amb")
-// fasta_ref_pac = file("${params.ref}.pac")
 
 bed = params.bed ? file(params.bed) : null
 gtf = params.gtf ? file(params.gtf) : null
@@ -161,6 +156,7 @@ gtf = params.gtf ? file(params.gtf) : null
 		
 		// Build ABRA2 options dynamically in Groovy
     	def abra_flags_list = []
+// TO ADD: 		// if (params.single)                          abra_flags_list << "--single --mapq 20"
     	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
     	if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
     	if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
@@ -178,7 +174,8 @@ gtf = params.gtf ? file(params.gtf) : null
         --ref ${fasta_ref} \
         --tmpdir . \
         --threads ${threads_val} \
-        --index --single --mapq 20 \
+        --index \
+		--single --mapq 20 \
         ${abra_flags} > "${bam_tag}_abra.log" 2>&1
    """
     }
@@ -186,36 +183,44 @@ gtf = params.gtf ? file(params.gtf) : null
 	process ABRA_TN {
 		tag { sample_id }
 		cpus params.cpu
-		memory "${params.mem} GB"
+		memory "${params.mem}GB"
 
 		input:
 		tuple val(sample_id), path(tumor_bam), path(tumor_bai), path(normal_bam), path(normal_bai)
 		path bed
 		path fasta_ref
 		path fasta_ref_fai
-		// path fasta_ref_sa
-		// path fasta_ref_bwt
-		// path fasta_ref_ann
-		// path fasta_ref_amb
-		// path fasta_ref_pac
 
 		output:
-		path("${sample_id}${params.suffix_normal}_abra.ba*"), emit: tumor_out
-		path("${sample_id}${params.suffix_tumor}_abra.ba*"), emit: normal_out
+		path("${sample_id}${params.suffix_normal}_abra.bam"), emit: tumor_bam_out
+		path("${sample_id}${params.suffix_normal}_abra.bai"), emit: tumor_bam_out
+		path("${sample_id}${params.suffix_tumor}_abra.bam"), emit: normal_bam_out
+		path("${sample_id}${params.suffix_tumor}_abra.bai"), emit: normal_bam_out
+		path("${sample_id}_abra.log"), emit: log_out
 
 		publishDir params.output_folder, mode: 'move'
 
 		script:
-		def abra_single = params.single ? '--single --mapq 20' : ''
-		def abra_bed = params.bed ? "--targets $bed" : ''
+		def java_mem = params.mem - 2
+		def threads_val = params.cpu ?: 1
+		
+		// Build ABRA2 options dynamically in Groovy
+    	def abra_flags_list = []
+    	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
+		// if (params.single)                          abra_flags_list << "--single --mapq 20"
+    	// if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
+    	// if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
+    	// if (params.rna)                          abra_flags_list << "--sua --dist 500000"
+    	// if (params.ignore_bad_assembly)          abra_flags_list << "--ignore-bad-assembly"
+
+    	def abra_flags = abra_flags_list.join(' ')
+
     """
 		java -Xmx${params.mem}g -jar ${params.abra_path} \
 			--in ${normal_bam},${tumor_bam} \
 			--out ${sample_id}${params.suffix_normal}_abra.bam,${sample_id}${params.suffix_tumor}_abra.bam \
-			--ref ${fasta_ref} --threads ${task.cpu} --index ${abra_single} ${abra_bed} \
-			> ${sample_id}_abra.log 2>&1
-
-
+			--ref ${fasta_ref} --threads ${threads_val} --index \
+			 ${abra_flags} > "${sample_id}_abra.log" 2>&1
     """
 }
 
@@ -250,38 +255,28 @@ workflow {
         log.info "Running Tumor/Normal ABRA2 realignment"
 
 		tumor_bams = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam")
+            .map { f -> tuple(f.baseName.replace(params.suffix_tumor, ''), f) }
+
         tumor_bais = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam.bai")
+            .map { f -> tuple(f.baseName.replace("${params.suffix_tumor}.bam", ''), f) }
 
         normal_bams = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam")
+            .map { f -> tuple(f.baseName.replace(params.suffix_normal, ''), f) }
+
         normal_bais = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam.bai")
+            .map { f -> tuple(f.baseName.replace("${params.suffix_normal}.bam", ''), f) }
 
-        tumor = tumor_bams.join(tumor_bais)
-        normal = normal_bams.join(normal_bais)
+		tumor_bb = tumor_bams.join(tumor_bais)
+        normal_bb = normal_bams.join(normal_bais)
 
-        tn = tumor.join(normal)
-            .map { t, n ->
-                tuple(
-                    t[0].baseName.replace(params.suffix_tumor,''),
-                    t[1], t[2],
-                    n[1], n[2]
-                )
+    	tn_pairs = tumor_bb
+            .join(normal_bb)
+            .map { tag, t_bam, t_bai, n_bam, n_bai ->
+                tuple(tag, t_bam, t_bai, n_bam, n_bai)
             }
 
-        //tumor_bams = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam")
-        //    .map { bam -> tuple(bam.baseName.replace(params.suffix_tumor, ''), bam) }
-        //tumor_bais = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam.bai")
-        //    .map { bai -> tuple(bai.baseName.replace(params.suffix_tumor, ''), bai) }
-        //tumor_bam_bai = tumor_bams.join(tumor_bais)
+        tn_pairs.view { "TN_PAIR → $it" }
 
-        //normal_bams = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam")
-        //    .map { bam -> tuple(bam.baseName.replace(params.suffix_normal, ''), bam) }
-        //normal_bais = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam.bai")
-        //    .map { bai -> tuple(bai.baseName.replace(params.suffix_normal, ''), bai) }
-        //normal_bam_bai = normal_bams.join(normal_bais)
-
-        //tn_pairs = tumor_bam_bai.join(normal_bam_bai)
-        //    .map { tag, tumor_bam, tumor_bai, normal_bam, normal_bai -> tuple(tag, tumor_bam, tumor_bai, normal_bam, normal_bai) }
-
-        ABRA_TN(tn, bed, fasta_ref, fasta_ref_fai)
+        ABRA_TN(tn_pairs, bed, fasta_ref, fasta_ref_fai)
 	    }
 }
