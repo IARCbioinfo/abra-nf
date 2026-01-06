@@ -182,8 +182,12 @@ gtf = params.gtf ? file(params.gtf) : null
  abra_flags=""
 
     # BED targets
-    if [ -f "!{bed}" ] && [ "!{bed}" != "nothing" ]; then
-        abra_flags="\$abra_flags --targets !{bed}"
+//    if [ -f "!{bed}" ] && [ "!{bed}" != "nothing" ]; then
+  //      abra_flags="\$abra_flags --targets !{bed}"
+  //  fi
+
+	 if [ -f "${bed}" ] && [ "${bed}" != "nothing" ]; then
+        abra_flags="\$abra_flags --targets ${bed}"
     fi
 
     # Junctions
@@ -192,8 +196,8 @@ gtf = params.gtf ? file(params.gtf) : null
     fi
 
     # GTF
-    if [ -f "!{gtf}" ] && [ "!{gtf}" != "nothing" ]; then
-        abra_flags="\$abra_flags --gtf !{gtf}"
+ if [ -f "${gtf}" ] && [ "${gtf}" != "nothing" ]; then
+        abra_flags="\$abra_flags --targets ${gtf}"
     fi
 
     # RNA mode
@@ -205,15 +209,16 @@ gtf = params.gtf ? file(params.gtf) : null
     if [ "${params.ignore_bad_assembly}" = "true" ]; then
         abra_flags="\$abra_flags --ignore-bad-assembly"
     fi
- 
-java -Xmx${java_mem}g -jar !{params.abra_path} \
-        --in !{bam} \
-        --out "!{bam_tag}_abra.bam" \
-        --ref !{fasta_ref} \
+
+ java -Xmx${java_mem}g -jar ${params.abra_path} \
+        --in ${bam} \
+        --out "${bam_tag}_abra.bam" \
+        --ref ${fasta_ref} \
         --tmpdir . \
         --threads ${threads_val} \
         --index --single --mapq 20 \
-        \$abra_flags > "!{bam_tag}_abra.log" 2>&1
+        \$abra_flags > "${bam_tag}_abra.log" 2>&1
+
    """
     }
 
@@ -248,6 +253,8 @@ java -Xmx${java_mem}g -jar !{params.abra_path} \
 			--out ${sample_id}${params.suffix_normal}_abra.bam,${sample_id}${params.suffix_tumor}_abra.bam \
 			--ref ${fasta_ref} --threads ${task.cpu} --index ${abra_single} ${abra_bed} \
 			> ${sample_id}_abra.log 2>&1
+
+
     """
 }
 
