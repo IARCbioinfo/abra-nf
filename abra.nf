@@ -167,7 +167,7 @@ gtf = params.gtf ? file(params.gtf) : null
 		// Build ABRA2 options dynamically in Groovy
     	def abra_flags_list = []
     	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
-    	if (params.junctions && junction_file.name != 'NO_JUNCTION_FILE') abra_flags_list << "--junctions ${junction_file}"
+    	// if (params.junctions) abra_flags_list << "--junctions ${junctions}"
     	if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
     	if (params.rna)                          abra_flags_list << "--sua --dist 500000"
     	if (params.ignore_bad_assembly)          abra_flags_list << "--ignore-bad-assembly"
