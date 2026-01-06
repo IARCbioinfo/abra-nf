@@ -181,33 +181,40 @@ gtf = params.gtf ? file(params.gtf) : null
     # Build ABRA options dynamically
  abra_flags=""
 
-    if [ ! -z "!{bed}" ] && [ -f "!{bed}" ]; then
+    # BED targets
+    if [ -f "!{bed}" ] && [ "!{bed}" != "nothing" ]; then
         abra_flags="\$abra_flags --targets !{bed}"
     fi
 
-    if [ "${params.junctions}" = "true" ] && [ -f "!{junction_file}" ] && [ "!{junction_file}" != "NO_JUNCTION_FILE" ]; then
+    # Junctions
+    if [ -f "!{junction_file}" ] && [ "!{junction_file}" != "NO_JUNCTION_FILE" ]; then
         abra_flags="\$abra_flags --junctions !{junction_file}"
     fi
 
-    if [ ! -z "!{gtf}" ] && [ -f "!{gtf}" ]; then
+    # GTF
+    if [ -f "!{gtf}" ] && [ "!{gtf}" != "nothing" ]; then
         abra_flags="\$abra_flags --gtf !{gtf}"
     fi
 
+    # RNA mode
     if [ "${params.rna}" = "true" ]; then
         abra_flags="\$abra_flags --sua --dist 500000"
     fi
 
+    # Ignore bad assembly
     if [ "${params.ignore_bad_assembly}" = "true" ]; then
         abra_flags="\$abra_flags --ignore-bad-assembly"
     fi
-    java -Xmx${java_mem}g -jar !{params.abra_path} \
+ 
+java -Xmx${java_mem}g -jar !{params.abra_path} \
         --in !{bam} \
         --out "!{bam_tag}_abra.bam" \
         --ref !{fasta_ref} \
         --tmpdir . \
         --threads ${threads_val} \
-        --index --single --mapq 20 \$abra_flags > "!{bam_tag}_abra.log" 2>&1
-    """
+        --index --single --mapq 20 \
+        \$abra_flags > "!{bam_tag}_abra.log" 2>&1
+   """
     }
 
 	process ABRA_TN {
