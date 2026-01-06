@@ -162,14 +162,20 @@ gtf = params.gtf ? file(params.gtf) : null
 
         script:
 		def java_mem = params.mem - 2
-		def abra_single   = params.single ? '--single --mapq 20' : ''
-		def abra_bed      = params.bed ? "--targets $bed" : ''
-		def abra_junctions= params.junctions ? "--junctions $junctions" : ''
-		def abra_gtf      = params.gtf ? "--gtf $gtf" : ''
-		def abra_rna      = params.rna ? "--sua --dist 500000" : ''
-		def abra_iba      = params.ignore_bad_assembly ? "--ignore-bad-assembly" : ''
+		def threads_val = params.cpu ?: 1
+		
+		// Build optional ABRA flags dynamically
+    	def abra_flags = []
+    	if (params.bed) abra_flags << "--targets ${bed}"
+    	if (params.junctions && junction_file.name != 'NO_JUNCTION_FILE') abra_flags << "--junctions ${junction_file}"
+    	if (params.gtf) abra_flags << "--gtf ${gtf}"
+    	if (params.rna) abra_flags << '--sua --dist 500000'
+    	if (params.ignore_bad_assembly) abra_flags << '--ignore-bad-assembly'
+
+    	def abra_flags_str = abra_flags.join(' ')
+
     """
-	    java -Xmx${java_mem}g -jar ${params.abra_path} --in ${bam} --out ${bam_tag}_abra.bam --ref ${fasta_ref} --tmpdir . --threads ${task.cpu} --index ${abra_single} ${abra_bed} ${abra_junctions} ${abra_gtf} ${abra_rna} ${abra_iba} > ${bam_tag}_abra.log 2>&1
+	    java -Xmx${java_mem}g -jar ${params.abra_path} --in ${bam} --out ${bam_tag}_abra.bam --ref ${fasta_ref} --tmpdir . --threads ${threads_val} --index --single --mapq 20 ${abra_flags_str} > ${bam_tag}_abra.log 2>&1
     """
     }
 
