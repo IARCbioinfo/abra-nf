@@ -143,15 +143,10 @@ gtf = params.gtf ? file(params.gtf) : null
         memory "${params.mem}GB"
 
         input:
-		tuple val(bam_tag), path(bam), path(bai), path(junctions)
+		tuple val(bam_tag), path(bam), path(bai), path(junctions_file)
 		path bed
 		path fasta_ref
 		path fasta_ref_fai
-		// path fasta_ref_sa
-		// path fasta_ref_bwt
-		// path fasta_ref_ann
-		// path fasta_ref_amb
-		// path fasta_ref_pac
 
         output:
 		path("${bam_tag}_abra.bam"), emit: bam_out
@@ -167,7 +162,7 @@ gtf = params.gtf ? file(params.gtf) : null
 		// Build ABRA2 options dynamically in Groovy
     	def abra_flags_list = []
     	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
-    	// if (params.junctions) abra_flags_list << "--junctions ${junctions}"
+    	if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
     	if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
     	if (params.rna)                          abra_flags_list << "--sua --dist 500000"
     	if (params.ignore_bad_assembly)          abra_flags_list << "--ignore-bad-assembly"
