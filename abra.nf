@@ -229,7 +229,7 @@ workflow {
 
         if (params.junctions) {
             junctions = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
-            .map { f -> tuple(f.baseName.replace('.SJ.out.tab',''), f) }
+            .map { f -> tuple(f.baseName.replace('.SJ.out.tab','').replace('STAR.',''), f) }
 			.ifEmpty { error "No junctions files found in ${params.bam_folder}" }
         bam_bai = bam_bai.join(junctions).map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)}
         } else {
