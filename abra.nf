@@ -227,13 +227,13 @@ workflow {
         bam_bai = bams.join(bais) // emit tag, bam, bai
 
         if (params.junctions) {
-            junctions = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
-            .map { f -> tuple(f.baseName.replace('.SJ.out.tab','').replace('STAR.',''), f) }
-			.ifEmpty { error "No junctions files found in ${params.bam_folder}" }
-        bam_bai = bam_bai.join(junctions)
-//.map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)}
+            junctions_ch = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
+            		.map { f -> tuple(f.baseName.replace('.SJ.out.tab','').replace('STAR.',''), f) }
+					.ifEmpty { error "No junctions files found in ${params.bam_folder}" }
+        bam_bai = bam_bai.join(junctions_ch)
+				.map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)}
         } else {
-            bam_bai = bam_bai.map { tag, bam, bai -> tuple(tag, bam, bai, null) }
+            	bam_bai = bam_bai.map { tag, bam, bai -> tuple(tag, bam, bai, null) }
         }
 		bam_bai.view { "BAM_BAI → $it" }
 
