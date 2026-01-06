@@ -130,8 +130,8 @@ fasta_ref_ann = file("${params.ref}.ann")
 fasta_ref_amb = file("${params.ref}.amb")
 fasta_ref_pac = file("${params.ref}.pac")
 
-bed = params.bed ? file(params.bed) : file("NO_BED")
-gtf = params.gtf ? file(params.gtf) : file("NO_GTF")
+bed = params.bed ? file(params.bed) : null
+gtf = params.gtf ? file(params.gtf) : null
 
 // ---------------------------
 // PROCESSES
@@ -220,18 +220,24 @@ workflow {
         log.info "Running single-sample ABRA2 realignment"
         bams = Channel.fromPath("${params.bam_folder}/*.bam")
 			.map { f -> tuple(f.baseName, f) }
+			.ifEmpty { error "No BAM files found in ${params.bam_folder}" }
         bais = Channel.fromPath("${params.bam_folder}/*.bam.bai")
             .map { f -> tuple(f.baseName.replace('.bam',''), f) }
-        bam_bai = bams.join(bais)
+			.ifEmpty { error "No BAI files found in ${params.bam_folder}" }
+        bam_bai = bams.join(bais) // emit tag, bam, bai
 
         if (params.junctions) {
             junctions = Channel.fromPath("${params.bam_folder}/*.SJ.out.tab")
             .map { f -> tuple(f.baseName.replace('.SJ.out.tab',''), f) }
-        bam_bai = bam_bai.join(junctions)
+			.ifEmpty { error "No junctions files found in ${params.bam_folder}" }
+        bam_bai = bam_bai
+					.join(junctions)
+					.map { tag, bam, bai, junction -> tuple(tag, bam, bai, junction)
         } else {
-            bam_bai = bam_bai.map { tag, bam, bai -> tuple(tag, bam, bai, file("NO_JUNCTION_FILE")) }
+            bam_bai = bam_bai.map { tag, bam, bai -> tuple(tag, bam, bai, null) }
         }
-
+		
+		bam_bai.view { "BAM_BAI → $it" }
         ABRA_SINGLE(bam_bai, bed, fasta_ref, fasta_ref_fai, fasta_ref_sa, fasta_ref_bwt, fasta_ref_ann, fasta_ref_amb, fasta_ref_pac)
 
     } else {
