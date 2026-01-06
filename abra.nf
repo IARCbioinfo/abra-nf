@@ -154,8 +154,9 @@ gtf = params.gtf ? file(params.gtf) : null
 		// path fasta_ref_pac
 
         output:
-		path("${bam_tag}_abra.ba*"), emit: bam_out
-		//path("${bam_tag}_abra.bai"), emit: bai_out
+		path("${bam_tag}_abra.bam"), emit: bam_out
+		path("${bam_tag}_abra.bai"), emit: bai_out
+		path("${bam_tag}_abra.log"), emit: log_out
 
 		publishDir params.output_folder, mode: 'move'
 
