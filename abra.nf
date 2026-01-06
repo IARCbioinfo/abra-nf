@@ -124,11 +124,11 @@ if (params.bam_folder) {
 
 fasta_ref     = file(params.ref)
 fasta_ref_fai = file("${params.ref}.fai")
-fasta_ref_sa  = file("${params.ref}.sa")
-fasta_ref_bwt = file("${params.ref}.bwt")
-fasta_ref_ann = file("${params.ref}.ann")
-fasta_ref_amb = file("${params.ref}.amb")
-fasta_ref_pac = file("${params.ref}.pac")
+// fasta_ref_sa  = file("${params.ref}.sa")
+// fasta_ref_bwt = file("${params.ref}.bwt")
+// fasta_ref_ann = file("${params.ref}.ann")
+// fasta_ref_amb = file("${params.ref}.amb")
+// fasta_ref_pac = file("${params.ref}.pac")
 
 bed = params.bed ? file(params.bed) : null
 gtf = params.gtf ? file(params.gtf) : null
@@ -147,11 +147,11 @@ gtf = params.gtf ? file(params.gtf) : null
 		path bed
 		path fasta_ref
 		path fasta_ref_fai
-		path fasta_ref_sa
-		path fasta_ref_bwt
-		path fasta_ref_ann
-		path fasta_ref_amb
-		path fasta_ref_pac
+		// path fasta_ref_sa
+		// path fasta_ref_bwt
+		// path fasta_ref_ann
+		// path fasta_ref_amb
+		// path fasta_ref_pac
 
         output:
 		path("${bam_tag}_abra.ba*"), emit: bam_out
@@ -187,11 +187,11 @@ gtf = params.gtf ? file(params.gtf) : null
 		path bed
 		path fasta_ref
 		path fasta_ref_fai
-		path fasta_ref_sa
-		path fasta_ref_bwt
-		path fasta_ref_ann
-		path fasta_ref_amb
-		path fasta_ref_pac
+		// path fasta_ref_sa
+		// path fasta_ref_bwt
+		// path fasta_ref_ann
+		// path fasta_ref_amb
+		// path fasta_ref_pac
 
 		output:
 		path("${sample_id}${params.suffix_normal}_abra.ba*"), emit: tumor_out
@@ -236,7 +236,7 @@ workflow {
 
         bam_bai.view { "BAM_BAI → $it" }
 
-        ABRA_SINGLE(bam_bai, bed, fasta_ref, fasta_ref_fai, fasta_ref_sa, fasta_ref_bwt, fasta_ref_ann, fasta_ref_amb, fasta_ref_pac)
+        ABRA_SINGLE(bam_bai, bed, fasta_ref, fasta_ref_fai)
 
     } else {
         log.info "Running Tumor/Normal ABRA2 realignment"
@@ -274,6 +274,6 @@ workflow {
         //tn_pairs = tumor_bam_bai.join(normal_bam_bai)
         //    .map { tag, tumor_bam, tumor_bai, normal_bam, normal_bai -> tuple(tag, tumor_bam, tumor_bai, normal_bam, normal_bai) }
 
-        ABRA_TN(tn, bed, fasta_ref, fasta_ref_fai, fasta_ref_sa, fasta_ref_bwt, fasta_ref_ann, fasta_ref_amb, fasta_ref_pac)
+        ABRA_TN(tn, bed, fasta_ref, fasta_ref_fai)
 	    }
 }
