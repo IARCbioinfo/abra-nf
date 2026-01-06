@@ -165,17 +165,38 @@ gtf = params.gtf ? file(params.gtf) : null
 		def threads_val = params.cpu ?: 1
 		
 		// Build optional ABRA flags dynamically
-    	def abra_flags = []
-    	if (params.bed) abra_flags << "--targets ${bed}"
-    	if (params.junctions && junction_file.name != 'NO_JUNCTION_FILE') abra_flags << "--junctions ${junction_file}"
-    	if (params.gtf) abra_flags << "--gtf ${gtf}"
-    	if (params.rna) abra_flags << '--sua --dist 500000'
-    	if (params.ignore_bad_assembly) abra_flags << '--ignore-bad-assembly'
+    	//def abra_flags = []
+    	//if (params.bed) abra_flags << "--targets ${bed}"
+    	//if (params.junctions && junction_file.name != 'NO_JUNCTION_FILE') abra_flags << "--junctions ${junction_file}"
+    	//if (params.gtf) abra_flags << "--gtf ${gtf}"
+    	//if (params.rna) abra_flags << '--sua --dist 500000'
+    	//if (params.ignore_bad_assembly) abra_flags << '--ignore-bad-assembly'
 
-    	def abra_flags_str = abra_flags.join(' ')
+    	//def abra_flags_str = abra_flags.join(' ')
 
     """
-	    java -Xmx${java_mem}g -jar ${params.abra_path} --in ${bam} --out ${bam_tag}_abra.bam --ref ${fasta_ref} --tmpdir . --threads ${threads_val} --index --single --mapq 20 ${abra_flags_str} > ${bam_tag}_abra.log 2>&1
+	#!/bin/bash
+    set -euo pipefail
+
+    # Build ABRA options dynamically
+    abra_flags=""
+    if [ "${params.bed}" != "" ] && [ -f "${bed}" ]; then
+        abra_flags="\$abra_flags --targets ${bed}"
+    fi
+    if [ "${params.junctions}" = "true" ] && [ -f "${junction_file}" ] && [ "${junction_file}" != "NO_JUNCTION_FILE" ]; then
+        abra_flags="\$abra_flags --junctions ${junction_file}"
+    fi
+    if [ "${params.gtf}" != "" ] && [ -f "${gtf}" ]; then
+        abra_flags="\$abra_flags --gtf ${gtf}"
+    fi
+    if [ "${params.rna}" = "true" ]; then
+        abra_flags="\$abra_flags --sua --dist 500000"
+    fi
+    if [ "${params.ignore_bad_assembly}" = "true" ]; then
+        abra_flags="\$abra_flags --ignore-bad-assembly"
+    fi
+
+	    java -Xmx${java_mem}g -jar ${params.abra_path} --in ${bam} --out ${bam_tag}_abra.bam --ref ${fasta_ref} --tmpdir . --threads ${threads_val} --index --single --mapq 20 $abra_flags > ${bam_tag}_abra.log 2>&1
     """
     }
 
