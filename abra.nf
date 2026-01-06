@@ -89,20 +89,19 @@ if (params.help) {
     exit 0
 }
 
-// STILL NEEDED IN DSL2 ? (AUTO ?)
-// else {
-//      /* Software information */
-//   log.info "bam_folder = ${params.bam_folder}"
-//   log.info "ref          = ${params.ref}"
-//   log.info "cpu          = ${params.cpu}"
-//   log.info "mem          = ${params.mem}"
-//   log.info "output_folder= ${params.output_folder}"
-//   log.info "bed          = ${params.bed}"
-//   log.info "abra_path    = ${params.abra_path}"
-//   log.info "gtf          = ${params.gtf}"
-//   log.info "junctions    = ${params.junctions}"
-//   log.info "help=${params.help}"
-// }
+ else {
+      /* Software information */
+  log.info "bam_folder = ${params.bam_folder}"
+   log.info "ref          = ${params.ref}"
+   log.info "cpu          = ${params.cpu}"
+   log.info "mem          = ${params.mem}"
+   log.info "output_folder= ${params.output_folder}"
+   log.info "bed          = ${params.bed}"
+   log.info "abra_path    = ${params.abra_path}"
+   log.info "gtf          = ${params.gtf}"
+   log.info "junctions    = ${params.junctions}"
+   log.info "help=${params.help}"
+ }
 
 
 // ---------------------------
@@ -143,7 +142,6 @@ gtf = params.gtf ? file(params.gtf) : file('nothing')
         tag { bam_tag }
         cpus params.cpu
         memory "${params.mem} GB"
-        publishDir params.output_folder, mode: 'move'
 
         input:
 		tuple val(bam_tag), path(bam), path(bai), path(junctions)
