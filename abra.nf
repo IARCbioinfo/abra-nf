@@ -217,7 +217,7 @@ gtf = params.gtf ? file(params.gtf) : null
         --tmpdir . \
         --threads ${threads_val} \
         --index --single --mapq 20 \
-        \$abra_flags > "${bam_tag}_abra.log" 2>&1
+        ${abra_flags} > "${bam_tag}_abra.log" 2>&1
 
    """
     }
