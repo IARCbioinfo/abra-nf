@@ -29,77 +29,19 @@ params.mem = 16
 params.cpu = 4
 params.output_folder = "abra_BAM"
 
-// --------------------------------------------------
-// INFO / HELP
-// --------------------------------------------------
-
-log.info ""
-log.info "--------------------------------------------------------"
-log.info "  abra2-nf v4.0: Nextflow pipeline for ABRA2         "
-log.info "--------------------------------------------------------"
-log.info "Copyright (C) IARC/WHO"
-log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
-log.info "This is free software, and you are welcome to redistribute it under certain conditions; see LICENSE for details."
-log.info "--------------------------------------------------------"
-log.info "#################################################################################
+//Header for the IARC tools - logo generated using the following page : http://patorjk.com/software/taag  (ANSI logo generator)
+def IARC_Header (){
+     return  """
+#################################################################################
 # ██╗ █████╗ ██████╗  ██████╗██████╗ ██╗ ██████╗ ██╗███╗   ██╗███████╗ ██████╗  #
 # ██║██╔══██╗██╔══██╗██╔════╝██╔══██╗██║██╔═══██╗██║████╗  ██║██╔════╝██╔═══██╗ #
 # ██║███████║██████╔╝██║     ██████╔╝██║██║   ██║██║██╔██╗ ██║█████╗  ██║   ██║ #
 # ██║██╔══██║██╔══██╗██║     ██╔══██╗██║██║   ██║██║██║╚██╗██║██╔══╝  ██║   ██║ #
 # ██║██║  ██║██║  ██║╚██████╗██████╔╝██║╚██████╔╝██║██║ ╚████║██║     ╚██████╔╝ #
 # ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═════╝ ╚═╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚═╝      ╚═════╝  #
-# Nextflow pipelines for cancer genomics.########################################"
-log.info ""
-
-if (params.help) {
-    log.info ''
-    log.info '--------------------------------------------------'
-    log.info '  USAGE              '
-    log.info '--------------------------------------------------'
-    log.info ''
-    log.info 'Usage: '
-    log.info 'nextflow run iarcbioinf/abra-nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref.fasta'
-    log.info ''
-    log.info 'Mandatory arguments:'
-    log.info '   When using Tumor/Normal pairs:'
-    log.info '    --tumor_bam_folder   FOLDER                  Folder containing tumor BAM files.'
-    log.info '    --normal_bam_folder  FOLDER                  Folder containing matched normal BAM files.'
-    log.info '   In other cases:'
-    log.info '    --bam_folder         FOLDER                  Folder containing BAM files.'
-    log.info '   In all cases:'
-    log.info '    --ref                FILE (with index)       Reference fasta file indexed.'
-    log.info '    --abra_path          FILE                    abra.jar explicit path.'
-    log.info 'Optional arguments:'
-    log.info '   When using Tumor/Normal pairs:'
-    log.info '    --suffix_tumor       STRING                  Suffix identifying tumor bam (default: "_T").'
-    log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
-    log.info '   In all cases:'
-    log.info '    --single                                     Flag for single-end sequencing.'
-    log.info '    --bed                FILE                    Bed file containing target intervals.'
-    log.info '    --junctions                                  Flag to use STAR identified junctions.'
-    log.info '    --gtf                FILE                    GTF file containing junction annotations.'
-    log.info '    --rna                                        Flag to add RNA-specific recommended ABRA2 parameters.'
-    log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
-    log.info '    --threads            INTEGER                 Number of threads (default: 4)'
-    log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
-    log.info ''
-    exit 0
+# Nextflow pipelines for cancer genomics.########################################
+"""
 }
-
- else {
-      /* Software information */
-  log.info "bam_folder = ${params.bam_folder}"
-   log.info "ref          = ${params.ref}"
-   log.info "cpu          = ${params.cpu}"
-   log.info "mem          = ${params.mem}"
-   log.info "output_folder= ${params.output_folder}"
-   log.info "bed          = ${params.bed}"
-   log.info "abra_path    = ${params.abra_path}"
-   log.info "gtf          = ${params.gtf}"
-   log.info "junctions    = ${params.junctions}"
-   log.info "help=${params.help}"
- }
-
 
 // ---------------------------
 // PARAMETER CHECKS
@@ -226,6 +168,69 @@ gtf = params.gtf ? file(params.gtf) : null
 // ---------------------------
 
 workflow {
+
+  		log.info IARC_Header()
+// --------------------------------------------------
+// INFO / HELP
+// --------------------------------------------------
+
+log.info ""
+log.info "----------------------------------------------------------------------------------------------------------------"
+log.info "  abra2-nf v4.0: Nextflow pipeline for ABRA2         "
+log.info "----------------------------------------------------------------------------------------------------------------"
+log.info "Copyright (C) IARC/WHO"
+log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
+log.info "This is free software, and you are welcome to redistribute it under certain conditions; see LICENSE for details."
+log.info "----------------------------------------------------------------------------------------------------------------"
+log.info ""
+
+if (params.help) {
+    log.info ''
+	log.info '-------------------------------------------------------------'
+    log.info 'USAGE: '
+    log.info 'nextflow run iarcbioinf/abra-nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref.fasta'
+	log.info '-------------------------------------------------------------'
+	log.info ''
+    log.info 'Mandatory arguments:'
+    log.info '   When using Tumor/Normal pairs:'
+    log.info '    --tumor_bam_folder   FOLDER                  Folder containing tumor BAM files.'
+    log.info '    --normal_bam_folder  FOLDER                  Folder containing matched normal BAM files.'
+    log.info '   In other cases:'
+    log.info '    --bam_folder         FOLDER                  Folder containing BAM files.'
+    log.info '   In all cases:'
+    log.info '    --ref                FILE (with index)       Reference fasta file indexed.'
+    log.info '    --abra_path          FILE                    abra.jar explicit path.'
+    log.info 'Optional arguments:'
+    log.info '   When using Tumor/Normal pairs:'
+    log.info '    --suffix_tumor       STRING                  Suffix identifying tumor bam (default: "_T").'
+    log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
+    log.info '   In all cases:'
+    log.info '    --single                                     Flag for single-end sequencing.'
+    log.info '    --bed                FILE                    Bed file containing target intervals.'
+    log.info '    --junctions                                  Flag to use STAR identified junctions.'
+    log.info '    --gtf                FILE                    GTF file containing junction annotations.'
+    log.info '    --rna                                        Flag to add RNA-specific recommended ABRA2 parameters.'
+    log.info '    --mem                INTEGER                 RAM used (in GB, default: 16)'
+    log.info '    --threads            INTEGER                 Number of threads (default: 4)'
+    log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
+    log.info ''
+    exit 0
+}
+
+ else {
+      /* Software information */
+  log.info "bam_folder = ${params.bam_folder}"
+   log.info "ref          = ${params.ref}"
+   log.info "cpu          = ${params.cpu}"
+   log.info "mem          = ${params.mem}"
+   log.info "output_folder= ${params.output_folder}"
+   log.info "bed          = ${params.bed}"
+   log.info "abra_path    = ${params.abra_path}"
+   log.info "gtf          = ${params.gtf}"
+   log.info "junctions    = ${params.junctions}"
+   log.info "help=${params.help}"
+ }
+
     if (params.bam_folder) {
         log.info "Running single-sample ABRA2 realignment"
         bams = Channel.fromPath("${params.bam_folder}/*.bam")
@@ -244,7 +249,7 @@ workflow {
             tuple(tag, bam, bai, junction_file)
         }
 
-        bam_bai.view { "BAM_BAI → $it" }
+        //bam_bai.view { "BAM_BAI → $it" }
 
         ABRA_SINGLE(bam_bai, bed, fasta_ref, fasta_ref_fai)
 
