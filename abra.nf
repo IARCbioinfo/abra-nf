@@ -95,7 +95,7 @@ gtf = params.gtf ? file(params.gtf) : null
 		
 		// Build ABRA2 options dynamically in Groovy
     	def abra_flags_list = []
-// TO ADD: 		// if (params.single)                          abra_flags_list << "--single --mapq 20"
+		if (params.single)                       abra_flags_list << "--single --mapq 20"
     	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
     	if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
     	if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
@@ -114,7 +114,6 @@ gtf = params.gtf ? file(params.gtf) : null
         --tmpdir . \
         --threads ${threads_val} \
         --index \
-		--single --mapq 20 \
         ${abra_flags} > "${bam_tag}_abra.log" 2>&1
    """
     }
