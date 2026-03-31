@@ -130,10 +130,14 @@ gtf = params.gtf ? file(params.gtf) : null
 		path fasta_ref_fai
 
 		output:
-		path("${sample_id}${params.suffix_normal}_abra.bam"), emit: tumor_bam_out
-		path("${sample_id}${params.suffix_normal}_abra.bai"), emit: tumor_bam_out
-		path("${sample_id}${params.suffix_tumor}_abra.bam"), emit: normal_bam_out
-		path("${sample_id}${params.suffix_tumor}_abra.bai"), emit: normal_bam_out
+		tuple val(sample_id), 
+      		path("${sample_id}${params.suffix_normal}_abra.bam"), 
+      		path("${sample_id}${params.suffix_normal}_abra.bam.bai"), 
+      		emit: normal_bam_out
+		tuple val(sample_id), 
+      		path("${sample_id}${params.suffix_tumor}_abra.bam"), 
+      		path("${sample_id}${params.suffix_tumor}_abra.bam.bai"), 
+      		emit: tumor_bam_out
 		path("${sample_id}_abra.log"), emit: log_out
 
 		publishDir params.output_folder, mode: 'move'
