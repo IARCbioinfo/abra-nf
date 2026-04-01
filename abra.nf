@@ -1,19 +1,15 @@
 #! /usr/bin/env nextflow
 
-// Copyright (C) 2017 IARC/WHO
+// Copyright (C) 2026 IARC/WHO
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+// See the GNU General Public License for more details <http://www.gnu.org/licenses/>.
 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+nextflow.enable.dsl=2
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// ---------------------------
+// PARAMETERS
+// ---------------------------
 
 params.help = null
 params.tumor_bam_folder = null
@@ -26,28 +22,178 @@ params.abra_path = '/opt/conda/envs/abra-nf/share/abra2*/abra2.jar'
 params.junctions = null
 params.gtf = null
 params.rna = null
-params.ignore_bad_assembly = null  
+params.ignore_bad_assembly = null
+params.suffix_tumor  = "_T"
+params.suffix_normal = "_N"
+params.mem = 16
+params.cpu = 4
+params.output_folder = "abra_BAM"
+
+//Header for the IARC tools - logo generated using the following page : http://patorjk.com/software/taag  (ANSI logo generator)
+def IARC_Header (){
+     return  """
+#################################################################################
+# ██╗ █████╗ ██████╗  ██████╗██████╗ ██╗ ██████╗ ██╗███╗   ██╗███████╗ ██████╗  #
+# ██║██╔══██╗██╔══██╗██╔════╝██╔══██╗██║██╔═══██╗██║████╗  ██║██╔════╝██╔═══██╗ #
+# ██║███████║██████╔╝██║     ██████╔╝██║██║   ██║██║██╔██╗ ██║█████╗  ██║   ██║ #
+# ██║██╔══██║██╔══██╗██║     ██╔══██╗██║██║   ██║██║██║╚██╗██║██╔══╝  ██║   ██║ #
+# ██║██║  ██║██║  ██║╚██████╗██████╔╝██║╚██████╔╝██║██║ ╚████║██║     ╚██████╔╝ #
+# ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═════╝ ╚═╝ ╚═════╝ ╚═╝╚═╝  ╚═══╝╚═╝      ╚═════╝  #
+# Nextflow pipelines for cancer genomics.########################################
+"""
+}
+
+// ---------------------------
+// PARAMETER CHECKS
+// ---------------------------
+
+assert params.ref, "please specify --ref option (--ref reference.fasta(.gz))"
+assert params.abra_path, "please specify --abra_path option (--abra_path /path/to/abra.jar)"
+
+if (params.bam_folder) {
+    assert file(params.bam_folder).exists() : "BAM folder not found: ${params.bam_folder}"
+} else {
+    assert file(params.tumor_bam_folder).exists() : "Tumor BAM folder not found: ${params.tumor_bam_folder}"
+    assert file(params.normal_bam_folder).exists() : "Normal BAM folder not found: ${params.normal_bam_folder}"
+}
+
+// ---------------------------
+// FILE DEFINITIONS
+// ---------------------------
+
+fasta_ref     = file(params.ref)
+fasta_ref_fai = file("${params.ref}.fai")
+
+bed = params.bed ? file(params.bed) : null
+gtf = params.gtf ? file(params.gtf) : null
+
+// ---------------------------
+// PROCESSES
+// ---------------------------
+
+    process ABRA_SINGLE {
+        tag { bam_tag }
+        cpus params.cpu
+        memory "${params.mem}GB"
+
+        input:
+		tuple val(bam_tag), path(bam), path(bai), path(junctions_file)
+		path bed
+		path fasta_ref
+		path fasta_ref_fai
+
+        output:
+		path("${bam_tag}_abra.bam"), emit: bam_out
+		path("${bam_tag}_abra.bai"), emit: bai_out
+		path("${bam_tag}_abra.log"), emit: log_out
+
+		publishDir params.output_folder, mode: 'move'
+
+        script:
+		def java_mem = params.mem - 2
+		def threads_val = params.cpu ?: 1
+		
+		// Build ABRA2 options dynamically in Groovy
+    	def abra_flags_list = []
+		if (params.single)                       abra_flags_list << "--single --mapq 20"
+    	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
+    	if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
+    	if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
+    	if (params.rna)                          abra_flags_list << "--sua --dist 500000"
+    	if (params.ignore_bad_assembly)          abra_flags_list << "--ignore-bad-assembly"
+
+    	def abra_flags = abra_flags_list.join(' ')
+
+    """
+	#!/bin/bash
+    set -euo pipefail
+	java -Xmx${java_mem}g -jar ${params.abra_path} \
+        --in ${bam} \
+        --out "${bam_tag}_abra.bam" \
+        --ref ${fasta_ref} \
+        --tmpdir . \
+        --threads ${threads_val} \
+        --index \
+        ${abra_flags} > "${bam_tag}_abra.log" 2>&1
+   """
+    }
+
+	process ABRA_TN {
+		tag { sample_id }
+		cpus params.cpu
+		memory "${params.mem}GB"
+
+		input:
+		tuple val(sample_id), path(tumor_bam), path(tumor_bai), path(normal_bam), path(normal_bai)
+		path bed
+		path fasta_ref
+		path fasta_ref_fai
+
+		output:
+		tuple val(sample_id), 
+      		path("${sample_id}${params.suffix_normal}_abra.bam"), 
+      		path("${sample_id}${params.suffix_normal}_abra.bam.bai"), 
+      		emit: normal_bam_out
+		tuple val(sample_id), 
+      		path("${sample_id}${params.suffix_tumor}_abra.bam"), 
+      		path("${sample_id}${params.suffix_tumor}_abra.bam.bai"), 
+      		emit: tumor_bam_out
+		path("${sample_id}_abra.log"), emit: log_out
+
+		publishDir params.output_folder, mode: 'move'
+
+		script:
+		def java_mem = params.mem - 2
+		def threads_val = params.cpu ?: 1
+		
+		// Build ABRA2 options dynamically in Groovy
+    	def abra_flags_list = []
+    	if (bed && bed.name != 'nothing')        abra_flags_list << "--targets ${bed}"
+		// if (params.single)                          abra_flags_list << "--single --mapq 20"
+    	// if (params.junctions && junctions_file && junctions_file.name != 'NO_JUNCTION_FILE')    abra_flags_list << "--junctions ${junctions_file}"
+    	// if (gtf && gtf.name != 'nothing')        abra_flags_list << "--gtf ${gtf}"
+    	// if (params.rna)                          abra_flags_list << "--sua --dist 500000"
+    	// if (params.ignore_bad_assembly)          abra_flags_list << "--ignore-bad-assembly"
+
+    	def abra_flags = abra_flags_list.join(' ')
+
+    """
+		java -Xmx${params.mem}g -jar ${params.abra_path} \
+			--in ${normal_bam},${tumor_bam} \
+			--out ${sample_id}${params.suffix_normal}_abra.bam,${sample_id}${params.suffix_tumor}_abra.bam \
+			--ref ${fasta_ref} --threads ${threads_val} --index \
+			 ${abra_flags} > "${sample_id}_abra.log" 2>&1
+    """
+}
+
+ // ---------------------------
+// WORKFLOW
+// ---------------------------
+
+workflow {
+
+  		log.info IARC_Header()
+// --------------------------------------------------
+// INFO / HELP
+// --------------------------------------------------
 
 log.info ""
-log.info "--------------------------------------------------------"
-log.info "  abra2-nf v3.0: Nextflow pipeline for ABRA2         "
-log.info "--------------------------------------------------------"
+log.info "----------------------------------------------------------------------------------------------------------------"
+log.info "  abra2-nf v4.0: Nextflow pipeline for ABRA2         "
+log.info "----------------------------------------------------------------------------------------------------------------"
 log.info "Copyright (C) IARC/WHO"
 log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
-log.info "This is free software, and you are welcome to redistribute it"
-log.info "under certain conditions; see LICENSE for details."
-log.info "--------------------------------------------------------"
+log.info "This is free software, and you are welcome to redistribute it under certain conditions; see LICENSE for details."
+log.info "----------------------------------------------------------------------------------------------------------------"
 log.info ""
 
 if (params.help) {
     log.info ''
-    log.info '--------------------------------------------------'
-    log.info '  USAGE              '
-    log.info '--------------------------------------------------'
-    log.info ''
-    log.info 'Usage: '
+	log.info '-------------------------------------------------------------'
+    log.info 'USAGE: '
     log.info 'nextflow run iarcbioinf/abra-nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref.fasta'
-    log.info ''
+	log.info '-------------------------------------------------------------'
+	log.info ''
     log.info 'Mandatory arguments:'
     log.info '   When using Tumor/Normal pairs:'
     log.info '    --tumor_bam_folder   FOLDER                  Folder containing tumor BAM files.'
@@ -72,207 +218,70 @@ if (params.help) {
     log.info '    --output_folder      FOLDER                  Output folder (default: abra_BAM).'
     log.info ''
     exit 0
-}else {
-  /* Software information */
+}
+
+ else {
+      /* Software information */
   log.info "bam_folder = ${params.bam_folder}"
-  log.info "ref          = ${params.ref}"
-  log.info "cpu          = ${params.cpu}"
-  log.info "mem          = ${params.mem}"
-  log.info "output_folder= ${params.output_folder}"
-  log.info "bed          = ${params.bed}"
-  log.info "abra_path    = ${params.abra_path}"
-  log.info "gtf          = ${params.gtf}"
-  log.info "junctions    = ${params.junctions}"
-  log.info "help=${params.help}"
-}
+   log.info "ref          = ${params.ref}"
+   log.info "cpu          = ${params.cpu}"
+   log.info "mem          = ${params.mem}"
+   log.info "output_folder= ${params.output_folder}"
+   log.info "bed          = ${params.bed}"
+   log.info "abra_path    = ${params.abra_path}"
+   log.info "gtf          = ${params.gtf}"
+   log.info "junctions    = ${params.junctions}"
+   log.info "help=${params.help}"
+ }
 
+    if (params.bam_folder) {
+        log.info "Running single-sample ABRA2 realignment"
+        bams = Channel.fromPath("${params.bam_folder}/*.bam")
+			.map { f -> tuple(f.baseName, f) }
+			.ifEmpty { error "No BAM files found in ${params.bam_folder}" }
+        bais = Channel.fromPath("${params.bam_folder}/*.bam.bai")
+            .map { f -> tuple(f.baseName.replace('.bam',''), f) }
+			.ifEmpty { error "No BAI files found in ${params.bam_folder}" }
+        
+		bam_bai = bams.join(bais) // emit tag, bam, bai
 
-assert (params.ref != true) && (params.ref != null) : "please specify --ref option (--ref reference.fasta(.gz))"
-if (params.bam_folder) {
-    assert (params.bam_folder != true) && (params.bam_folder != null) : "please specify --bam_folder option (--bam_folder bamfolder)"
-} else {
-    assert (params.normal_bam_folder != true) && (params.normal_bam_folder != null) : "please specify --normal_bam_folder option (--normal_bam_folder bamfolder)"
-    assert (params.tumor_bam_folder != true) && (params.tumor_bam_folder != null) : "please specify --tumor_bam_folder option (--tumor_bam_folder bamfolder)"
-}
+		// Attach junction file or NONE per BAM
+        bam_bai = bam_bai.map { tag, bam, bai ->
+            junction_file = params.junctions ? file("${params.bam_folder}/STAR.${tag}.SJ.out.tab") : file("NO_JUNCTION_FILE")
+            if (!junction_file.exists()) junction_file = file("NO_JUNCTION_FILE")
+            tuple(tag, bam, bai, junction_file)
+        }
 
-if (params.bed!=null) {
-    assert (params.bed != true) : "please specify file when using --bed option (--bed regions.bed)"
-    try { assert file(params.bed).exists() : "\n WARNING : input bed file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
-}
-bed = params.bed ? file(params.bed) : file('nothing')
+        //bam_bai.view { "BAM_BAI → $it" }
 
-if (params.gtf!=null) {
-    assert (params.gtf != true) : "please specify file when using --gtf option (--gtf annotations.gtf)"
-    try { assert file(params.gtf).exists() : "\n WARNING : input gtf file not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
-}
-gtf = params.gtf ? file(params.gtf) : file('nothing')
+        ABRA_SINGLE(bam_bai, bed, fasta_ref, fasta_ref_fai)
 
-assert (params.abra_path != true) && (params.abra_path != null) : "please specify --abra_path option (--abra_path /path/to/abra.jar)"
+    } else {
+        log.info "Running Tumor/Normal ABRA2 realignment"
 
-fasta_ref = file(params.ref)
-fasta_ref_fai = file( params.ref+'.fai' )
-fasta_ref_sa  = file( params.ref+'.sa' )
-fasta_ref_bwt = file( params.ref+'.bwt' )
-fasta_ref_ann = file( params.ref+'.ann' )
-fasta_ref_amb = file( params.ref+'.amb' )
-fasta_ref_pac = file( params.ref+'.pac' )
+		tumor_bams = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam")
+            .map { f -> tuple(f.baseName.replace(params.suffix_tumor, ''), f) }
 
-params.suffix_tumor  = "_T"
-params.suffix_normal = "_N"
-params.mem = 16
-params.cpu = 4
-params.output_folder = "abra_BAM"
+        tumor_bais = Channel.fromPath("${params.tumor_bam_folder}/*${params.suffix_tumor}.bam.bai")
+            .map { f -> tuple(f.baseName.replace("${params.suffix_tumor}.bam", ''), f) }
 
+        normal_bams = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam")
+            .map { f -> tuple(f.baseName.replace(params.suffix_normal, ''), f) }
 
-try { assert fasta_ref.exists() : "\n WARNING : fasta reference not located in execution directory. Make sure reference index is in the same folder as fasta reference" } catch (AssertionError e) { println e.getMessage() }
-if (fasta_ref.exists()) {assert fasta_ref_fai.exists() : "input fasta reference does not seem to have a .fai index (use samtools faidx)"}
+        normal_bais = Channel.fromPath("${params.normal_bam_folder}/*${params.suffix_normal}.bam.bai")
+            .map { f -> tuple(f.baseName.replace("${params.suffix_normal}.bam", ''), f) }
 
-if (fasta_ref.exists() && params.ref.tokenize('.')[-1] == 'gz') {assert fasta_ref_gzi.exists() : "input gz fasta reference does not seem to have a .gzi index (use samtools faidx)"}
+		tumor_bb = tumor_bams.join(tumor_bais)
+        normal_bb = normal_bams.join(normal_bais)
 
-if(params.bam_folder) {
-    try { assert file(params.bam_folder).exists() : "\n WARNING : input BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
-    assert file(params.bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "BAM folder contains no BAM"
+    	tn_pairs = tumor_bb
+            .join(normal_bb)
+            .map { tag, t_bam, t_bai, n_bam, n_bai ->
+                tuple(tag, t_bam, t_bai, n_bam, n_bai)
+            }
 
-    // recovering of bam files
-    bams = Channel.fromPath( params.bam_folder+'/*.bam' )
-              .ifEmpty { error "Cannot find any bam file in: ${params.bam_folder}" }
-              .map {  path -> [ path.name.replace(".bam",""), path ] }
-	      //.println()
+        tn_pairs.view { "TN_PAIR → $it" }
 
-    // recovering of bai files
-    bais = Channel.fromPath( params.bam_folder+'/*.bam.bai' )
-              .ifEmpty { error "Cannot find any bai file in: ${params.bam_folder}" }
-              .map {  path -> [ path.name.replace(".bam.bai",""), path ] }
-              //.println()
-
-    if(params.junctions){
-	// recovering junctions files
-    	junctions = Channel.fromPath( params.bam_folder+'/*.SJ.out.tab' )
-              .ifEmpty { error "Cannot find any junction tab files in: ${params.bam_folder}" }
-              .map {  path -> [ path.name.replace(".SJ.out.tab","").replace("STAR.",""), path ] }
-	// building bam-bai pairs
-        bam_bai = bams
-              .join(bais)
-	      .join(junctions)
-    }else{
-    // building bam-bai pairs
-    bam_bai = bams
-              .join(bais)
-              .map { tag, bam, bai -> [ tag, bam, bai, file("NO_JUNCTION_FILE") ] }
-    }
-    
-    process abra {
-        cpus params.cpu
-        memory params.mem+'GB'
-
-        tag { bam_tag }
-
-        publishDir params.output_folder, mode: 'move'
-
-        input:
-        set bam_tag, file(bam), file(bai), file(junctions) from bam_bai
-        file bed
-        file fasta_ref
-        file fasta_ref_fai
-        file fasta_ref_sa
-        file fasta_ref_bwt
-        file fasta_ref_ann
-        file fasta_ref_amb
-        file fasta_ref_pac
-
-        output:
-        file("${bam_tag}_abra.ba*") into bam_out
-
-        shell:
-	java_mem = params.mem - 2
-        abra_single = params.single ? '--single --mapq 20' : ''
-        abra_bed = params.bed ? "--targets $bed" : ''
-	abra_junctions = params.junctions ? "--junctions $junctions" : ''
-	abra_gtf = params.gtf ? "--gtf $gtf" : ''
-	abra_rna = params.rna ? "--sua --dist 500000" : ''
-	abra_iba = params.ignore_bad_assembly ? "--ignore-bad-assembly ": ""
-        '''
-        java -Xmx!{java_mem}g -jar !{params.abra_path} --in !{bam_tag}.bam --out "!{bam_tag}_abra.bam" --ref !{fasta_ref} --tmpdir . --threads !{params.cpu} --index !{abra_single} !{abra_bed} !{abra_junctions} !{abra_gtf} !{abra_rna} > !{bam_tag}_abra.log 2>&1
-	'''
-    }
-
-} else {
-
-    try { assert file(params.tumor_bam_folder).exists() : "\n WARNING : input tumor BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
-    assert file(params.tumor_bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "tumor BAM folder contains no BAM"
-    try { assert file(params.normal_bam_folder).exists() : "\n WARNING : input normal BAM folder not located in execution directory" } catch (AssertionError e) { println e.getMessage() }
-    assert file(params.normal_bam_folder).listFiles().findAll { it.name ==~ /.*bam/ }.size() > 0 : "normal BAM folder contains no BAM"
-
-    // FOR TUMOR
-    // recovering of bam files
-    tumor_bams = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam' )
-              .ifEmpty { error "Cannot find any bam file in: ${params.tumor_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_tumor}.bam",""), path ] }
-
-    // recovering of bai files
-    tumor_bais = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam.bai' )
-              .ifEmpty { error "Cannot find any bai file in: ${params.tumor_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_tumor}.bam.bai",""), path ] }
-
-    // building bam-bai pairs
-    tumor_bam_bai = tumor_bams
-              .phase(tumor_bais)
-              .map { tumor_bam, tumor_bai -> [ tumor_bam[0], tumor_bam[1], tumor_bai[1] ] }
-
-    // FOR NORMAL
-    // recovering of bam files
-    normal_bams = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam' )
-              .ifEmpty { error "Cannot find any bam file in: ${params.normal_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_normal}.bam",""), path ] }
-
-    // recovering of bai files
-    normal_bais = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam.bai' )
-              .ifEmpty { error "Cannot find any bai file in: ${params.normal_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_normal}.bam.bai",""), path ] }
-
-    // building bam-bai pairs
-    normal_bam_bai = normal_bams
-              .phase(normal_bais)
-              .map { normal_bam, normal_bai -> [ normal_bam[0], normal_bam[1], normal_bai[1] ] }
-
-    // building 4-uplets corresponding to {tumor_bam, tumor_bai, normal_bam, normal_bai}
-    tn_bambai = tumor_bam_bai
-          .phase(normal_bam_bai)
-          .map {tumor_bb, normal_bb -> [ tumor_bb[1], tumor_bb[2], normal_bb[1], normal_bb[2] ] }
-    // here each element X of tn_bambai channel is a 4-uplet. X[0] is the tumor bam, X[1] the tumor bai, X[2] the normal bam and X[3] the normal bai.
-
-
-    process abra_TN {
-
-        cpus params.cpu
-        memory params.mem+'GB'
-
-        tag { tumor_normal_tag }
-
-        publishDir params.output_folder, mode: 'move'
-
-        input:
-        file tn from tn_bambai
-        file bed
-        file fasta_ref
-        file fasta_ref_fai
-        file fasta_ref_gzi
-        file fasta_ref_sa
-        file fasta_ref_bwt
-        file fasta_ref_ann
-        file fasta_ref_amb
-        file fasta_ref_pac
-
-        output:
-        file("${tumor_normal_tag}${params.suffix_normal}_abra.ba*") into normal_output
-        file("${tumor_normal_tag}${params.suffix_tumor}_abra.ba*") into tumor_output
-
-        shell:
-        tumor_normal_tag = tn[0].baseName.replace(params.suffix_tumor,"")
-        abra_single = params.single ? '--single --mapq 20' : ''
-        abra_bed = params.bed ? "--targets $bed" : ''
-	      '''
-        java -Xmx!{params.mem}g -jar !{params.abra_path} --in !{tumor_normal_tag}!{params.suffix_normal}.bam,!{tumor_normal_tag}!{params.suffix_tumor}.bam --out "!{tumor_normal_tag}!{params.suffix_normal}_abra.bam","!{tumor_normal_tag}!{params.suffix_tumor}_abra.bam" --ref !{fasta_ref} --threads !{params.cpu}  --index !{abra_single} !{abra_bed} > !{tumor_normal_tag}_abra.log 2>&1
-	      '''
-    }
+        ABRA_TN(tn_pairs, bed, fasta_ref, fasta_ref_fai)
+	    }
 }
